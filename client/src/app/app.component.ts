@@ -12,7 +12,7 @@ export enum Page {
 })
 export class AppComponent {
   public pages = Page;
-  public currentPage: Page = Page.authorisation;
+  public currentPage: Page = Page.chat;
 
   onEnterClick(){
     this.currentPage = Page.chat;

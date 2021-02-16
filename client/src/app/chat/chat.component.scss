@@ -1,0 +1,91 @@
+@import '../../styles.scss';
+
+$messages-width: 40rem;
+$messages-height: 30rem;
+$messages-background-color: white;
+$input-width: 40rem;
+$input-height: 2rem;
+$input-background-color: white;
+$margin: 1rem;
+
+$message-out-color: $primary;
+$message-in-color: $primary;
+
+.wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    .messages {
+        width: $messages-width;
+        height: $messages-height;
+        max-height: $messages-height;
+        overflow-y: auto;
+        background-color: $messages-background-color;
+        border: 2px solid $stroke-color;
+        margin-bottom: $margin;
+        padding: $margin;
+
+        .message {
+            box-sizing: border-box;
+            width: calc(50% - 2rem);
+            padding: $margin;
+            margin-top: $margin;
+            border-radius: 5px;
+
+            .author {
+                font-size: 18px;
+                margin-bottom: $margin / 2;
+            }
+
+            .text {
+                word-wrap: break-word;
+                font-size: 14px;
+            }
+
+            .datetime {
+                font-size: 10px;
+                font-style: italic;
+            }
+        }
+
+        .message.in {
+            background-color: $message-in-color;
+            margin-left: 0;
+            margin-right: auto;
+        }
+
+        .message.out {
+            background-color: $message-out-color;
+            margin-left: 50%;
+            margin-right: auto;
+        }
+    }
+
+    .input-container {
+        vertical-align: middle;
+        width: $input-width;
+        max-width: $input-width;
+        padding-left: $margin;
+        background-color: $input-background-color;
+        border: 2px solid $stroke-color;
+
+        display: flex;
+
+        .message-input {
+            border: 0;
+            outline: none;
+            height: 2rem;
+            width: calc(100% - 2rem - 5rem);
+        }
+
+        .send-button {
+            width: 4rem;
+            display: inline-block;
+            margin-right: 0;
+            margin-left: auto;
+        }
+    }
+}

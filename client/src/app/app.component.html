@@ -1,2 +1,2 @@
-<app-authorisation *ngIf="currentPage === pages.authorisation"> </app-authorisation>
+<app-authorisation (onEnterClick)="onEnterClick()" *ngIf="currentPage === pages.authorisation"> </app-authorisation>
 <app-chat *ngIf="currentPage === pages.chat"> </app-chat>

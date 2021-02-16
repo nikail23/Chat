@@ -1,10 +1,11 @@
 <div class="wrapper">
-    <h1>Welcome to chat!</h1>
-    <form class="example-form">
-        <mat-form-field class="example-full-width">
-          <mat-label>Input your name</mat-label>
-          <input matInput class="name-input">
-        </mat-form-field>
-        <button mat-raised-button class="enter-chat-button" color="primary">Enter the chat</button>
-    </form>
+  <div class="auth-block">
+    <h1 class="caption">Welcome to chat!</h1>
+      <mat-form-field class="example-full-width" class="name-input">
+        <mat-label>Input your name</mat-label>
+        <input matInput [(ngModel)]="name" #nameInput>
+      </mat-form-field>
+    <div class="error" *ngIf="isError">{{error}}</div>
+    <button (click)="enterClick()"  mat-raised-button class="enter-chat-button" color="primary">Enter the chat</button>
+  </div>
 </div>

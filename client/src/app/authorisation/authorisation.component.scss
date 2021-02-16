@@ -1,3 +1,13 @@
+@import '../../styles.scss';
+
+$auth-block-size: 30rem;
+$auth-block-color: white;
+$margin: 1rem;
+$input-width: 15rem;
+$button-width: 10rem;
+$error-width: 12rem;
+$error-color: red;
+
 .wrapper {
     height: 100%;
     display: flex;
@@ -5,18 +15,37 @@
     justify-content: center;
     align-items: center;
 
-    form {
+    .auth-block {
+        width: $auth-block-size;
+        height: $auth-block-size;
+        background-color: $auth-block-color;
+        border: 2px solid $stroke-color;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
 
+        .caption {
+            text-align: center;
+            margin-bottom: $margin;
+        }
+    
         .name-input {
-            width: 20rem;
+            display: block;
+            width: $input-width;
+            margin-bottom: $margin;
         }
 
+        .error {
+            font-size: 12px;
+            color: $error-color;
+            width: $error-width;
+            margin-bottom: $margin;
+        }
+    
         .enter-chat-button {
-            width: 10rem;
+            display: block;
+            width: $button-width;
         }
     }
 }

@@ -13,4 +13,8 @@ export enum Page {
 export class AppComponent {
   public pages = Page;
   public currentPage: Page = Page.authorisation;
+
+  onEnterClick(){
+    this.currentPage = Page.chat;
+  }
 }

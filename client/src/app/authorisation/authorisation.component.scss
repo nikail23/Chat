@@ -1,0 +1,22 @@
+.wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    form {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+
+        .name-input {
+            width: 20rem;
+        }
+
+        .enter-chat-button {
+            width: 10rem;
+        }
+    }
+}

@@ -6,7 +6,7 @@ class User {
 
 class Message {
     constructor(authorId, text, datetime) {
-        this.author = author;
+        this.authorId = authorId;
         this.text = text;
         this.datetime = datetime;
     }
@@ -53,3 +53,39 @@ class ChatModel {
         this._messages.splice(id, 1);
     }
 }
+
+const chatModel = new ChatModel();
+
+const express = require("express");
+const app = express();
+const bodyParser = require('body-parser');
+const cors = require('cors');
+app.use(cors());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+
+app.get("/users", function(request, response){
+    response.json(chatModel.getUsers());
+});
+
+app.get("/messages", function(request, response){
+    response.json(chatModel.getMessages());
+});
+
+app.post("/users/:id", function(request, response) {
+    response.send("Вы пытаетесь добавить пользователя!");
+});
+
+app.post("/messages/:id", function(request, response) {
+    response.send("Вы пытаетесь добавить сообщение!");
+});
+
+app.delete("/messages/:id", function(request, response) {
+    response.send("Вы пытаетесь удалить сообщение!");
+});
+
+app.delete("/messages/:id", function(request, response) {
+    response.send("Вы пытаетесь удалить сообщение!");
+});
+
+app.listen(8000);

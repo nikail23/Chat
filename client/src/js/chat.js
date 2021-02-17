@@ -49,29 +49,17 @@ class ChatApiService {
     if (filter !== undefined && filter !== null) {
       if (filter.dateTo !== undefined) {
         if (isFirst) {
-          // const year = filter.dateTo.getFullYear();
-          // const month = (`0${filter.dateTo.getMonth() + 1}`).slice(-2);
-          // const day = (`0${filter.dateTo.getDate()}`).slice(-2);
           request += `&dateTo=${filter.dateTo}`;
         } else {
           isFirst = true;
-          // const year = filter.dateTo.getFullYear();
-          // const month = (`0${filter.dateTo.getMonth() + 1}`).slice(-2);
-          // const day = (`0${filter.dateTo.getDate()}`).slice(-2);
           request += `dateTo=${filter.dateTo}`;
         }
       }
       if (filter.dateFrom !== undefined) {
         if (isFirst) {
-          // const year = filter.dateFrom.getFullYear();
-          // const month = (`0${filter.dateFrom.getMonth() + 1}`).slice(-2);
-          // const day = (`0${filter.dateFrom.getDate()}`).slice(-2);
           request += `&dateFrom=${filter.dateFrom}`;
         } else {
           isFirst = true;
-          // const year = filter.dateFrom.getFullYear();
-          // const month = (`0${filter.dateFrom.getMonth() + 1}`).slice(-2);
-          // const day = (`0${filter.dateFrom.getDate()}`).slice(-2);
           request += `dateFrom=${filter.dateFrom}`;
         }
       }
@@ -119,9 +107,9 @@ class ChatApiService {
 
     let raw;
     if (isPersonal === false) {
-      raw = `{\n    "text": "${text}",\n    "isPersonal": ${isPersonal}\n}`;
+      raw = `{\n    "author": "${this.getCurrentUser().name}",\n    "text": "${text}",\n    "isPersonal": ${isPersonal}\n}`;
     } else {
-      raw = `{\n    "text": "${text}",\n    "isPersonal": ${isPersonal},\n    "to":"${to}"\n}`;
+      raw = `{\n    "author": "${this.getCurrentUser().name}",\n    "text": "${text}",\n    "isPersonal": ${isPersonal},\n    "to":"${to}"\n}`;
     }
 
     const requestOptions = {
@@ -389,6 +377,9 @@ class ChatController {
   }
 
   startShortPolling() {
+    this.showMessages(this.currentSkip, this.currentTop, this.currentFilter);
+    this.showActiveUsers();
+
     this.dataUpdateInterval = setInterval(() => {
       this.showMessages(this.currentSkip, this.currentTop, this.currentFilter);
     }, 2000);

@@ -138,13 +138,22 @@ class ChatModel {
         }
     }
 
-    addMessage(authorId, text, datetime) {
-        const message = new Message(authorId, text, datetime);
+    addMessage(message) {
+        if (this._messages.length !== 0) {
+            message.id = String(Number(this._messages[this._messages.length - 1].id) + 1);
+        } else {
+            message.id = 0;
+        }
+        message.createdAt = new Date();
         this._messages.push(message);
-    }
+      }
 
     deleteMessage(id) {
         this._messages.splice(id, 1);
+        for (let index = 0; index < this._messages.length; index++) {
+            const element = this._messages[index];
+            element.id = index;
+        }
     }
 }
 
@@ -175,13 +184,10 @@ app.get("/messages", function (request, response) {
     let dateFrom;
     if (dateFromString) {
         dateFrom = new Date(dateFromString);
-        console.log(dateFrom);
     }
     if (dateToString) {
         dateTo = new Date(dateToString);
-        console.log(dateTo);
     }
-
     const text = request.query.text;
     const author = request.query.author;
     response.statusCode = 200;
@@ -189,12 +195,29 @@ app.get("/messages", function (request, response) {
     response.json(chatModel.getMessages(top, skip, dateFrom, dateTo, text, author));
 });
 
-app.post("/messages/:id", function (request, response) {
-    response.send("Вы пытаетесь добавить сообщение!");
+app.post("/messages", function (request, response) {
+    if (!request.body) {
+        return response.status(400).send();
+    }
+    const message = new Message();
+    message.author = request.body.author;
+    message.text = request.body.text;
+    message.isPersonal = request.body.isPersonal;
+    message.to = request.body.to;
+    console.log(message);
+    chatModel.addMessage(message);
+
+    response.status(200).send();
 });
 
 app.delete("/messages/:id", function (request, response) {
-    response.send("Вы пытаетесь удалить сообщение!");
+    const id = request.params.id;
+    console.log(id);
+    if (id > -1) {
+        chatModel.deleteMessage(id);
+        response.status(200).send();
+    }
+    response.status(400).send();
 });
 
 // и еще редактирование

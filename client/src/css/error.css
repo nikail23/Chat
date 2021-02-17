@@ -1,0 +1,13 @@
+@import "./commonStyle.css";
+
+main {
+    display: flex;
+    justify-content: center;
+    position: relative
+}
+
+.error-container {
+    width: 50%;
+    position: absolute;
+    top: 25%;
+}

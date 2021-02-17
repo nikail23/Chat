@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./css/mainStyle.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    <title>Чат</title>
+</head>
+<body>
+    <header>
+        <a href="" class="logoLink">
+            <picture>
+                <source src="img/logo.jpg" type="image/jpg+pjpg">
+                <img class="logoImage" src="img/logo.png" alt="logoImage">
+            </picture>
+        </a>
+        <div class="avatar" id="avatar">
+
+        </div>
+        <div class="actions">
+            <div class="currentUser" id="currentUser">
+                User1
+            </div>
+            <a class="headerLink" id="logOut">Log out</a>
+        </div>
+    </header>
+    <main>
+        <div id="userList" class="userList">
+        </div>
+        </div>
+        <div class="chat">
+            <button class="loadMoreButton" id="loadMoreButton">Load old messages <b>&and;</b></button>
+            <div id="messages" class="messages">
+            </div>
+            <form class="input">
+                <div class="messageInput">
+                    <div class="inputText helpBox" id="helpBox">
+                        
+                    </div>
+                    <input type="text" name="messageTextImput" id="myInput" class="mymessageInput"> 
+                </div>
+                <input type="submit" id="sendButton" class="sendButton">
+                    
+                </input>
+            </form>
+        </div>
+        <div id="filters" class="filters">
+            <input type="text" class="filterInput" placeholder="Username filter">
+            <input type="text" class="filterInput" placeholder="Date from" onfocus="(this.type='date')" id="date">
+            <input type="text" class="filterInput" placeholder="Date to" onfocus="(this.type='date')" id="date">
+            <input type="text" class="filterInput" placeholder="Messages filter">
+            <div class="filters-btn">
+                <input type="submit" id="filterSendButton" class="messageButton" value="Apply filters">
+                <input type="submit" id="filterCancelButton" class="messageButton" value="Cancel filters">
+            </div>
+        </div>
+    </main>
+    <footer>
+        <div class="footerInfoBlock">
+            <div class="footerInfoText">Last Update: DD.MM.YYYY HH:MM</div>
+            <div class="footerInfoText">Email: nikail232323232323@gmail.com</div>
+            <div class="footerInfoText">Author: Yermolovich Ilya</div>
+            <div class="footerInfoText">Chat: MyChat</div>
+        </div>
+    </footer>
+    <script src="./js/chat.js"> </script>
+</body>
+</html>

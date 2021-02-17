@@ -1,0 +1,13 @@
+{
+    "extends": ["airbnb/base"],
+    "rules": {
+        "func-names": "off",
+        "no-console": "off",
+        "no-plusplus": "off",
+        "no-param-reassign": "off",
+        "no-empty-function": "off",
+        "class-methods-use-this": "off",
+        "no-underscore-dangle": "off",
+        "max-classes-per-file": "off"
+    }
+}

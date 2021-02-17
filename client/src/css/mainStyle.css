@@ -1,0 +1,279 @@
+@import "./commonStyle.css";
+
+.currentUser {
+  color: #ffffff;
+}
+
+main {
+  /* position: absolute; */
+  padding: 1rem;
+  /* top: 7rem; */
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  grid-template-rows: calc(2rem + 1em) repeat(5, 5rem);
+}
+
+.userList {
+  grid-row: 2/8;
+  grid-column: 1/2;
+  height: 80vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 60vh;
+
+  margin-right: 2rem;
+}
+
+.chat {
+  height: 10rem;
+  border-radius: 5px;
+  grid-row: 1/4;
+  grid-column: 2/3;
+  display: inline-block;
+}
+
+.messages {
+  grid-row: 1/7;
+  grid-column: 2/3;
+  height: 60vh;
+  overflow-y: scroll;
+}
+
+.comeMessage {
+  margin-right: 50%;
+  padding: 0.5rem;
+  padding-left: 1.5rem;
+  background-color: var(--second-bg-color);
+  border-radius: 0px 25px 25px 30px;
+}
+
+.sentMessage {
+  margin-left: 50%;
+  padding: 0.5rem;
+  background-color: var(--first-bg-color);
+  position: relative;
+  border-radius: 25px 0px 30px 25px;
+  padding-left: 1.5rem;
+}
+
+.sentMessage.editMessage {
+  background-color: var(--edit-messages-bg-color);
+}
+
+.comeMessage textarea,
+.sentMessage textarea {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  resize: none;
+  color: #000000;
+  border: 0;
+  background: 0;
+}
+
+.input {
+  margin-top: 1rem;
+  border: 0;
+  height: 4rem;
+  grid-row: 1/7;
+  grid-column: 2/3;
+  display: grid;
+  grid-template-columns: 7fr 1fr;
+}
+
+.messageInput {
+  background-color: #4ec1ed;
+  display: flex;
+  /* grid-column: 1/2; */
+  /* display: grid; */
+  /* grid-template-columns: 2fr 5fr; */
+}
+
+.messageInput input {
+  border: 0;
+  background: #4ec1ed;
+  font-size: 14px;
+  text-align: left center;
+  transition: 0.3s ease all;
+  width: 100%;
+}
+
+.messageInput input:focus {
+  color: #000000;
+  background: rgb(206, 206, 206);
+  outline: none;
+  font-size: 16px;
+}
+
+.inputText {
+  text-align: center;
+  grid-column: 1/2;
+  margin: auto 0;
+  word-break: break-all;
+  width: 10rem;
+}
+
+.sendButton {
+  width: 4rem;
+  height: 4rem;
+  margin: auto auto;
+  margin-left: 1rem;
+  background: transparent;
+  outline: none;
+  border-top: 2rem solid transparent;
+  border-left: 4rem solid rgba(37, 224, 174, 0.5);
+  border-bottom: 2rem solid transparent;
+  border-right: none;
+  border-radius: 5px;
+  transition: 0.3s ease all;
+}
+
+.sendButton:hover {
+  border-left: 4rem solid rgba(37, 224, 174, 1);
+  cursor: pointer;
+  outline: none;
+  transform: scale(1.2);
+}
+
+.sendButton:active,
+button:focus {
+  outline: none;
+}
+
+.filters {
+  padding-top: 3em;
+  grid-row: 3/7;
+  grid-column: 3/4;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.filters .filters-btn {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+}
+
+.user {
+  padding: 0.5rem;
+  font-size: 25px;
+}
+
+.user img {
+  width: 2rem;
+  vertical-align: -0.5rem;
+  display: inline;
+}
+
+.currentUser:hover {
+  transform: scale(1.1);
+  cursor: pointer;
+}
+
+.avatar {
+  margin: auto auto;
+  grid-row: 0/1;
+  grid-column: 3/4;
+}
+
+.avatar img {
+  width: 100%;
+}
+
+.filters input {
+  display: block;
+  background-color: #cdfffd;
+  border: none;
+  font-size: 14px;
+  width: 17rem;
+  margin-bottom: 0.5em;
+  border: solid 1px black;
+}
+
+.filters span {
+  font-size: 20px;
+  color: gray;
+}
+
+.loadMoreButton {
+  width: 20em;
+  height: 2rem;
+  margin: auto;
+  margin-bottom: 1em;
+  margin-left: 25%;
+  border: solid 1px black;
+  border-radius: 10px;
+  padding: 0.2em;
+  background-color: var(--nonactive-button-color);
+  cursor: pointer;
+}
+
+.loadMoreButton:hover {
+  background-color: var(--active-button-color);
+}
+
+#myInput {
+  background-color: #cdfffd;
+}
+
+.info1 {
+  font-size: 10px;
+  margin-bottom: 1rem;
+}
+
+.info2 {
+  font-size: 10px;
+  padding-left: 50%;
+  margin-bottom: 1rem;
+}
+
+.user:hover {
+  background-color: #cdd6ff;
+  cursor: pointer;
+}
+
+.imgMes1 {
+  width: 30px;
+  position: absolute;
+  right: 5px;
+  top: 7px;
+  visibility: hidden;
+  cursor: pointer;
+}
+
+.delete {
+  position: absolute;
+  right: 5px;
+  top: 7px;
+}
+
+.edit {
+  position: absolute;
+  right: 40px;
+  top: 7px;
+}
+
+.imgMes1:hover {
+  transform: scale(1.2);
+}
+
+.sentMessage:hover .imgMes1 {
+  visibility: visible;
+}
+
+.filters input[type="submit"][class="messageButton"] {
+  display: block;
+  width: 7rem;
+  height: 2rem;
+  background-color: var(--nonactive-button-color);
+  margin: auto;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.filters input[type="submit"][class="messageButton"]:hover {
+  background-color: var(--active-button-color);
+  border-radius: 10px;
+}

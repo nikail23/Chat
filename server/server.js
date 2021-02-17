@@ -7,14 +7,14 @@ class User {
 
 class Message {
     constructor(id, text, createdAt, author, isPersonal, to) {
-      this.id = id;
-      this.text = text;
-      this.createdAt = createdAt;
-      this.author = author;
-      this.isPersonal = isPersonal;
-      this.to = to;
+        this.id = id;
+        this.text = text;
+        this.createdAt = createdAt;
+        this.author = author;
+        this.isPersonal = isPersonal;
+        this.to = to;
     }
-  }
+}
 
 class ChatModel {
     _users = [
@@ -38,8 +38,63 @@ class ChatModel {
         return this._users;
     }
 
-    getMessages() {
-        return this._messages;
+    getMessages(top = 0, skip = 10, dateFrom, dateTo, text, author) {
+        let messagesBuffer = this._messages.slice();
+
+        if (author) {
+            for (let i = 0; i < messagesBuffer.length; i++) {
+                if (messagesBuffer[i].author.indexOf(author) === -1) {
+                    messagesBuffer.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+
+        if (dateFrom) {
+            for (let i = 0; i < messagesBuffer.length; i++) {
+                if (messagesBuffer[i].createdAt < dateFrom) {
+                    messagesBuffer.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+
+        if (dateTo) {
+            for (let i = 0; i < messagesBuffer.length; i++) {
+                if (messagesBuffer[i].createdAt > dateTo) {
+                    messagesBuffer.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+
+        if (text) {
+            for (let i = 0; i < messagesBuffer.length; i++) {
+                if (messagesBuffer[i].text.indexOf(text) === -1) {
+                    messagesBuffer.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+
+        function compareDates(message1, message2) {
+            return message1.createdAt - message2.createdAt;
+        }
+        messagesBuffer.sort(compareDates);
+
+        if (this.user) {
+            for (let i = 0; i < messagesBuffer.length; i++) {
+                if (messagesBuffer[i].isPersonal && messagesBuffer[i].to !== this.user && messagesBuffer[i].author !== this.user) {
+                    messagesBuffer.splice(i, 1);
+                    i--;
+                }
+            }
+        }
+
+        messagesBuffer = messagesBuffer.slice(skip, top + skip);
+
+        return messagesBuffer;
+
     }
 
     addUser(name, password) {
@@ -98,40 +153,54 @@ const chatModel = new ChatModel();
 const express = require("express");
 const app = express();
 const cors = require('cors');
-const multer  = require('multer');
+const multer = require('multer');
 const upload = multer();
 
 app.use(cors());
-app.use(express.urlencoded({extended: true})); 
-app.use(express.json());  
+app.use(express.urlencoded({
+    extended: true
+}));
+app.use(express.json());
 
-app.get("/users", function(request, response){
+app.get("/users", function (request, response) {
     response.json(chatModel.getUsers());
 });
 
-app.get("/messages", function(request, response){
-    response.json(chatModel.getMessages());
-    console.log('hello!');
+app.get("/messages", function (request, response) {
+    const top = request.query.top;
+    const skip = request.query.skip;
+    const dateFromString = request.query.dateFrom;
+    const dateToString = request.query.dateTo;
+    let dateTo;
+    let dateFrom;
+    if (dateFromString) {
+        dateFrom = new Date(dateFromString);
+        console.log(dateFrom);
+    }
+    if (dateToString) {
+        dateTo = new Date(dateToString);
+        console.log(dateTo);
+    }
+
+    const text = request.query.text;
+    const author = request.query.author;
+    response.statusCode = 200;
+    response.statusMessage = 'OK';
+    response.json(chatModel.getMessages(top, skip, dateFrom, dateTo, text, author));
 });
 
-app.post("/users/:id", function(request, response) {
-    response.send("Вы пытаетесь добавить пользователя!");
-});
-
-app.post("/messages/:id", function(request, response) {
+app.post("/messages/:id", function (request, response) {
     response.send("Вы пытаетесь добавить сообщение!");
 });
 
-app.delete("/messages/:id", function(request, response) {
+app.delete("/messages/:id", function (request, response) {
     response.send("Вы пытаетесь удалить сообщение!");
 });
 
-app.delete("/messages/:id", function(request, response) {
-    response.send("Вы пытаетесь удалить сообщение!");
-});
+// и еще редактирование
 
-app.post("/auth/login", upload.none(), function(request, response) {
-    if (!request.body) 
+app.post("/auth/login", upload.none(), function (request, response) {
+    if (!request.body)
         return response.sendStatus(400);
     const name = request.body.name;
     const password = request.body.password;
@@ -146,8 +215,8 @@ app.post("/auth/login", upload.none(), function(request, response) {
     }
 });
 
-app.post("/auth/register", upload.none(), function(request, response) {
-    if (!request.body) 
+app.post("/auth/register", upload.none(), function (request, response) {
+    if (!request.body)
         return response.sendStatus(400);
     const name = request.body.name;
     const password = request.body.password;
@@ -162,8 +231,8 @@ app.post("/auth/register", upload.none(), function(request, response) {
     }
 });
 
-app.post("/auth/logout", upload.none(), function(request, response) {
-    if (!request.body) 
+app.post("/auth/logout", upload.none(), function (request, response) {
+    if (!request.body)
         return response.sendStatus(400);
     const name = request.body.name;
     console.log(name);

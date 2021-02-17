@@ -23,15 +23,13 @@ class ChatApiService {
   }
 
   async getMessages(skip, top, filter) {
-    const myHeaders = new Headers();
 
     const requestOptions = {
       method: 'GET',
-      headers: myHeaders,
       redirect: 'follow',
     };
 
-    let request = `${this._address}/messages`;
+    let request = `${this._address}/messages?`;
     let isFirst = false;
 
     if (skip !== undefined) {
@@ -51,30 +49,30 @@ class ChatApiService {
     if (filter !== undefined && filter !== null) {
       if (filter.dateTo !== undefined) {
         if (isFirst) {
-          const year = filter.dateTo.getFullYear();
-          const month = (`0${filter.dateTo.getMonth() + 1}`).slice(-2);
-          const day = (`0${filter.dateTo.getDate()}`).slice(-2);
-          request += `&dateTo=${year}${month}${day}`;
+          // const year = filter.dateTo.getFullYear();
+          // const month = (`0${filter.dateTo.getMonth() + 1}`).slice(-2);
+          // const day = (`0${filter.dateTo.getDate()}`).slice(-2);
+          request += `&dateTo=${filter.dateTo}`;
         } else {
           isFirst = true;
-          const year = filter.dateTo.getFullYear();
-          const month = (`0${filter.dateTo.getMonth() + 1}`).slice(-2);
-          const day = (`0${filter.dateTo.getDate()}`).slice(-2);
-          request += `dateTo=${year}${month}${day}`;
+          // const year = filter.dateTo.getFullYear();
+          // const month = (`0${filter.dateTo.getMonth() + 1}`).slice(-2);
+          // const day = (`0${filter.dateTo.getDate()}`).slice(-2);
+          request += `dateTo=${filter.dateTo}`;
         }
       }
       if (filter.dateFrom !== undefined) {
         if (isFirst) {
-          const year = filter.dateFrom.getFullYear();
-          const month = (`0${filter.dateFrom.getMonth() + 1}`).slice(-2);
-          const day = (`0${filter.dateFrom.getDate()}`).slice(-2);
-          request += `dateFrom=${year}${month}${day}`;
+          // const year = filter.dateFrom.getFullYear();
+          // const month = (`0${filter.dateFrom.getMonth() + 1}`).slice(-2);
+          // const day = (`0${filter.dateFrom.getDate()}`).slice(-2);
+          request += `&dateFrom=${filter.dateFrom}`;
         } else {
           isFirst = true;
-          const year = filter.dateFrom.getFullYear();
-          const month = (`0${filter.dateFrom.getMonth() + 1}`).slice(-2);
-          const day = (`0${filter.dateFrom.getDate()}`).slice(-2);
-          request += `&dateFrom=${year}${month}${day}`;
+          // const year = filter.dateFrom.getFullYear();
+          // const month = (`0${filter.dateFrom.getMonth() + 1}`).slice(-2);
+          // const day = (`0${filter.dateFrom.getDate()}`).slice(-2);
+          request += `dateFrom=${filter.dateFrom}`;
         }
       }
       if (filter.author !== undefined && filter.author !== '') {

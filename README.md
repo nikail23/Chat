@@ -1,2 +1,2 @@
 # Chat
-Express + Angular chat application.
+Express + JS chat application.

@@ -7,7 +7,7 @@ class ChatApiService {
   async sendRegisterRequest(login, password) {
     const formdata = new FormData();
     formdata.append('name', login);
-    formdata.append('pass', password);
+    formdata.append('password', password);
 
     const requestOptions = {
       method: 'POST',
@@ -16,18 +16,20 @@ class ChatApiService {
     };
 
     const requestAddress = `${this.address}/auth/register`;
-    console.log(requestAddress);
 
     const registerResult = await fetch(requestAddress, requestOptions)
-      .then((response) => response.json())
-      .then((result) => result)
+      .then((response) => response)
       .catch((error) => console.log('error', error));
 
-    return registerResult;
+    if (registerResult.status === 200) {
+      return true;
+    } else {
+      return false;
+    }
   }
 }
 
-const chatApi = new ChatApiService('https://jslabdb.datamola.com');
+const chatApi = new ChatApiService('http://localhost:3000');
 
 const registerButton = document.getElementById('register');
 registerButton.addEventListener('click', async () => {
@@ -79,13 +81,9 @@ registerButton.addEventListener('click', async () => {
 
   const result = await chatApi.sendRegisterRequest(login, password);
 
-  if (result !== undefined && result.error) {
+  if (!result) {
     loginInput.value = '';
-    if (result.error.indexOf('E11000') !== -1) {
-      loginInput.placeholder = 'User with current login already exists!';
-    } else {
-      loginInput.placeholder = result.error;
-    }
+    loginInput.placeholder = 'User with current login already exists!';
     passwordInput.value = '';
     repeatPasswordInput.value = '';
   } else {

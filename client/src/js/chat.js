@@ -7,7 +7,6 @@
 class ChatApiService {
   constructor(address) {
     this._address = address;
-    this._token = sessionStorage.getItem('token');
 
     this._messages = [];
 
@@ -25,7 +24,6 @@ class ChatApiService {
 
   async getMessages(skip, top, filter) {
     const myHeaders = new Headers();
-    myHeaders.append('Authorization', `Bearer ${this._token}`);
 
     const requestOptions = {
       method: 'GET',
@@ -33,7 +31,7 @@ class ChatApiService {
       redirect: 'follow',
     };
 
-    let request = `${this._address}/messages?`;
+    let request = `${this._address}/messages`;
     let isFirst = false;
 
     if (skip !== undefined) {
@@ -119,7 +117,6 @@ class ChatApiService {
 
   async addMessage(text, isPersonal, to) {
     const myHeaders = new Headers();
-    myHeaders.append('Authorization', `Bearer ${this._token}`);
     myHeaders.append('Content-Type', 'application/json');
 
     let raw;
@@ -148,7 +145,6 @@ class ChatApiService {
     const message = this._getMessage(id);
 
     const myHeaders = new Headers();
-    myHeaders.append('Authorization', `Bearer ${this._token}`);
     myHeaders.append('Content-Type', 'application/json');
 
     let raw;
@@ -176,7 +172,6 @@ class ChatApiService {
 
   async deleteMesssage(id) {
     const myHeaders = new Headers();
-    myHeaders.append('Authorization', `Bearer ${this._token}`);
 
     const requestOptions = {
       method: 'DELETE',
@@ -196,13 +191,16 @@ class ChatApiService {
 
   async logOut() {
     const myHeaders = new Headers();
-    myHeaders.append('Authorization', `Bearer ${this._token}`);
     myHeaders.append('Content-Length', 0);
+
+    const formdata = new FormData();
+    formdata.append('name', chatController.chatApi._currentUser);
 
     const requestOptions = {
       method: 'POST',
       headers: myHeaders,
       redirect: 'follow',
+      body: formdata
     };
 
     await fetch(`${this._address}/auth/logout`, requestOptions)
@@ -213,7 +211,6 @@ class ChatApiService {
 
   async getUsers() {
     const myHeaders = new Headers();
-    myHeaders.append('Authorization', `Bearer ${this._token}`);
 
     const requestOptions = {
       method: 'GET',
@@ -372,7 +369,7 @@ class FiltersView {
 
 class ChatController {
   constructor() {
-    this.chatApi = new ChatApiService('localhost:3000/');
+    this.chatApi = new ChatApiService('http://localhost:3000');
 
     this.currentTop = 10;
     this.currentSkip = 0;
@@ -400,7 +397,7 @@ class ChatController {
 
     this.usersUpdateInterval = setInterval(() => {
       this.showActiveUsers();
-    }, 60000);
+    }, 10000);
   }
 
   endShortPolling() {
@@ -458,20 +455,10 @@ class ChatController {
     }
   }
 
-  _sortActiveUsers(users) {
-    const activeUsers = [];
-    users.forEach((user) => {
-      if (user.isActive) {
-        activeUsers.push(new User(user.name, 'https://img.pngio.com/user-profile-avatar-login-account-svg-png-icon-free-download-login-icon-png-980_982.png'));
-      }
-    });
-    return activeUsers;
-  }
-
   async showActiveUsers() {
     const users = await this.chatApi.getUsers();
     if (users !== null) {
-      this.activeUsersView.display(this._sortActiveUsers(users), this.chatApi.getCurrentUser());
+      this.activeUsersView.display(users, this.chatApi.getCurrentUser());
       addSelectUserEvent();
     }
   }

@@ -16,7 +16,7 @@ class ChatApiService {
   async sendLoginRequest(login, password) {
     const formdata = new FormData();
     formdata.append('name', login);
-    formdata.append('pass', password);
+    formdata.append('password', password);
 
     const requestOptions = {
       method: 'POST',
@@ -25,15 +25,18 @@ class ChatApiService {
     };
 
     const loginResult = await fetch(`${this.address}/auth/login`, requestOptions)
-      .then((response) => response.json())
-      .then((result) => result)
+      .then((response) => response)
       .catch((error) => console.log('error', error));
 
-    return loginResult;
+    if (loginResult.status === 200) {
+      return true;
+    } else {
+      return false;
+    }
   }
 }
 
-const chatApi = new ChatApiService('https://jslabdb.datamola.com');
+const chatApi = new ChatApiService('http://localhost:3000');
 
 const loginButton = document.getElementById('loginButton');
 loginButton.addEventListener('click', async () => {
@@ -45,13 +48,12 @@ loginButton.addEventListener('click', async () => {
 
   const result = await chatApi.sendLoginRequest(login, password);
 
-  if (result.token) {
-    sessionStorage.setItem('token', result.token);
+  if (result) {
     sessionStorage.setItem('currentUser', JSON.stringify(new User(login, 'https://image.flaticon.com/icons/png/512/194/194938.png')));
     document.location.href = './main.html';
   } else {
     loginInput.value = '';
-    loginInput.placeholder = result.error;
+    loginInput.placeholder = 'login or password are incorrect';
     passwordInput.value = '';
   }
 });

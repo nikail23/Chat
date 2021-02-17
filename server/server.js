@@ -28,7 +28,9 @@ class ChatModel {
         new Message(
             0,
             'Всем привет!',
-            new Date()
+            new Date(),
+            'nikail23',
+            false
         )
     ];
 
@@ -164,11 +166,14 @@ app.post("/auth/logout", upload.none(), function(request, response) {
     if (!request.body) 
         return response.sendStatus(400);
     const name = request.body.name;
+    console.log(name);
     if (chatModel.checkUser(name) && chatModel.deleteUser(name)) {
+        console.log(chatModel._users);
         response.statusCode = 200;
         response.statusMessage = 'OK';
         response.send()
     } else {
+        console.log(chatModel._users);
         response.statusCode = 400;
         response.statusMessage = 'User not online!';
         response.send();

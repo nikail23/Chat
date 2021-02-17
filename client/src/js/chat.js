@@ -194,7 +194,7 @@ class ChatApiService {
     myHeaders.append('Content-Length', 0);
 
     const formdata = new FormData();
-    formdata.append('name', chatController.chatApi._currentUser);
+    formdata.append('name', chatController.chatApi._currentUser.name);
 
     const requestOptions = {
       method: 'POST',

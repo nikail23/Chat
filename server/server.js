@@ -138,6 +138,10 @@ class ChatModel {
         }
     }
 
+    editMessage(id, text) {
+        this._messages[id].text = text;
+    }
+
     addMessage(message) {
         if (this._messages.length !== 0) {
             message.id = String(Number(this._messages[this._messages.length - 1].id) + 1);
@@ -172,7 +176,7 @@ app.use(express.urlencoded({
 app.use(express.json());
 
 app.get("/users", function (request, response) {
-    response.json(chatModel.getUsers());
+    response.status(200).json(chatModel.getUsers());
 });
 
 app.get("/messages", function (request, response) {
@@ -190,9 +194,7 @@ app.get("/messages", function (request, response) {
     }
     const text = request.query.text;
     const author = request.query.author;
-    response.statusCode = 200;
-    response.statusMessage = 'OK';
-    response.json(chatModel.getMessages(top, skip, dateFrom, dateTo, text, author));
+    response.status(200).json(chatModel.getMessages(top, skip, dateFrom, dateTo, text, author));
 });
 
 app.post("/messages", function (request, response) {
@@ -204,7 +206,6 @@ app.post("/messages", function (request, response) {
     message.text = request.body.text;
     message.isPersonal = request.body.isPersonal;
     message.to = request.body.to;
-    console.log(message);
     chatModel.addMessage(message);
 
     response.status(200).send();
@@ -212,7 +213,6 @@ app.post("/messages", function (request, response) {
 
 app.delete("/messages/:id", function (request, response) {
     const id = request.params.id;
-    console.log(id);
     if (id > -1) {
         chatModel.deleteMessage(id);
         response.status(200).send();
@@ -220,7 +220,15 @@ app.delete("/messages/:id", function (request, response) {
     response.status(400).send();
 });
 
-// и еще редактирование
+app.put("/messages/:id", function (request, response) {
+    const id = request.params.id;
+    if (id > -1) {
+        const text = request.body.text;
+        chatModel.editMessage(id, text);
+        response.status(200).send();
+    }
+    response.status(400).send();
+});
 
 app.post("/auth/login", upload.none(), function (request, response) {
     if (!request.body)
@@ -228,13 +236,9 @@ app.post("/auth/login", upload.none(), function (request, response) {
     const name = request.body.name;
     const password = request.body.password;
     if (chatModel.checkUser(name, password)) {
-        response.statusCode = 200;
-        response.statusMessage = 'OK';
-        response.send()
+        response.status(200).send();
     } else {
-        response.statusCode = 400;
-        response.statusMessage = 'Bad login or password';
-        response.send();
+        response.status(404).send();
     }
 });
 
@@ -244,13 +248,9 @@ app.post("/auth/register", upload.none(), function (request, response) {
     const name = request.body.name;
     const password = request.body.password;
     if (!chatModel.checkUser(name) && chatModel.addUser(name, password)) {
-        response.statusCode = 200;
-        response.statusMessage = 'OK';
-        response.send()
+        response.status(200).send();
     } else {
-        response.statusCode = 400;
-        response.statusMessage = 'User with such name already registered!';
-        response.send();
+        response.status(400).send();
     }
 });
 
@@ -260,15 +260,9 @@ app.post("/auth/logout", upload.none(), function (request, response) {
     const name = request.body.name;
     console.log(name);
     if (chatModel.checkUser(name) && chatModel.deleteUser(name)) {
-        console.log(chatModel._users);
-        response.statusCode = 200;
-        response.statusMessage = 'OK';
-        response.send()
+        response.status(200).send();
     } else {
-        console.log(chatModel._users);
-        response.statusCode = 400;
-        response.statusMessage = 'User not online!';
-        response.send();
+        response.status(400).send();
     }
 });
 

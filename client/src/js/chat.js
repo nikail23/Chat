@@ -128,17 +128,10 @@ class ChatApiService {
   }
 
   async editMessage(id, text) {
-    const message = this._getMessage(id);
-
     const myHeaders = new Headers();
     myHeaders.append('Content-Type', 'application/json');
 
-    let raw;
-    if (message.isPersonal === false) {
-      raw = `{\n    "text": "${text}",\n    "isPersonal": ${message.isPersonal}\n}`;
-    } else {
-      raw = `{\n    "text": "${text}",\n    "isPersonal": ${message.isPersonal},\n    "to":"${message.to}"\n}`;
-    }
+    const raw  = `{"text": "${text}"}`;
 
     const requestOptions = {
       method: 'PUT',
@@ -149,7 +142,7 @@ class ChatApiService {
 
     await fetch(`${this._address}/messages/${id}`, requestOptions)
       .then((response) => {
-        if (response.statusText !== 'OK') {
+        if (response.status !== 200) {
           document.location.href = `../error.html?errorCode=${response.status}&errorDescription=${response.statusText}`;
         }
       })

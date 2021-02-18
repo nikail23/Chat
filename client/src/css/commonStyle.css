@@ -1,0 +1,93 @@
+:root {
+  --first-bg-color: #55e0bb;
+  --edit-messages-bg-color: #22b48d;
+  --active-button-color: rgba(37, 224, 174, 1);
+  --nonactive-button-color: rgba(37, 224, 174, 0.5);
+  --second-bg-color: #4ec1ed;
+  --input-bg-color: #ebebeb;
+}
+
+::-webkit-scrollbar {
+  width: 11px;
+}
+
+::-webkit-scrollbar-track {
+  background: #c4c6c8;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4ec1ed;
+  border-radius: 10px;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.4);
+}
+
+::-webkit-scrollbar-thumb:vertical:hover,
+::-webkit-scrollbar-thumb:horizontal:hover {
+  background: #55e0bb;
+}
+
+body {
+  font-family: "Roboto", sans-serif;
+  font-size: 14px;
+  margin: 0;
+  max-height: 768px;
+}
+
+main {
+  min-height: 80vh;
+  margin-bottom: 2rem;
+  margin-top: 2rem;
+}
+
+header {
+  /* position: absolute; */
+  width: 100%;
+  height: 7rem;
+  background-color: var(--first-bg-color);
+
+  display: grid;
+  grid-template-columns: minmax(3rem, 6rem) minmax(auto, 100%) minmax(3rem, 6rem) minmax(3rem, 6rem);
+  grid-template-rows: minmax(7rem, auto);
+}
+
+.logoLink {
+  grid-column: 2/3;
+}
+
+.logoImage {
+  height: 100%;
+  width: auto;
+}
+
+.actions {
+  margin: auto auto;
+  grid-column: 4/5;
+  padding-bottom: 1rem;
+}
+
+.headerLink {
+  cursor: pointer;
+  color: #ffffff;
+}
+
+footer {
+  /* position: absolute; */
+  /* top: calc(768px - 7rem); */
+  /* left: 0; */
+
+  width: 100%;
+  height: 7rem;
+  background-color: var(--second-bg-color);
+  display: grid;
+  grid-template-columns: minmax(1rem, 2rem) minmax(10rem, 20rem) auto;
+}
+
+.footerInfoBlock {
+  position: relative;
+  margin: auto 0;
+  grid-column: 2/3;
+}
+
+.footerInfoText {
+  color: #ffffff;
+}

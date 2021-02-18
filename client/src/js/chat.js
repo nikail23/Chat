@@ -23,10 +23,13 @@ class ChatApiService {
   }
 
   async getMessages(skip, top, filter) {
+    const myHeaders = new Headers();
+    myHeaders.append('currentUser', this._currentUser.name);
 
     const requestOptions = {
       method: 'GET',
       redirect: 'follow',
+      headers: myHeaders
     };
 
     let request = `${this._address}/messages?`;

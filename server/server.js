@@ -38,7 +38,7 @@ class ChatModel {
         return this._users;
     }
 
-    getMessages(top = 0, skip = 10, dateFrom, dateTo, text, author) {
+    getMessages(top = 0, skip = 10, dateFrom, dateTo, text, author, currentUser) {
         let messagesBuffer = this._messages.slice();
 
         if (author) {
@@ -82,9 +82,9 @@ class ChatModel {
         }
         messagesBuffer.sort(compareDates);
 
-        if (this.user) {
+        if (currentUser) {
             for (let i = 0; i < messagesBuffer.length; i++) {
-                if (messagesBuffer[i].isPersonal && messagesBuffer[i].to !== this.user && messagesBuffer[i].author !== this.user) {
+                if (messagesBuffer[i].isPersonal && messagesBuffer[i].to !== currentUser && messagesBuffer[i].author !== currentUser ) {
                     messagesBuffer.splice(i, 1);
                     i--;
                 }
@@ -194,7 +194,8 @@ app.get("/messages", function (request, response) {
     }
     const text = request.query.text;
     const author = request.query.author;
-    response.status(200).json(chatModel.getMessages(top, skip, dateFrom, dateTo, text, author));
+    const currentUser = request.get('currentUser');
+    response.status(200).json(chatModel.getMessages(top, skip, dateFrom, dateTo, text, author, currentUser));
 });
 
 app.post("/messages", function (request, response) {

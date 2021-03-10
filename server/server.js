@@ -2,6 +2,7 @@ class User {
     constructor(name, password) {
         this.name = name;
         this.password = password;
+        this.isActive = false;
     }
 }
 
@@ -34,8 +35,20 @@ class ChatModel {
         )
     ];
 
+    setUserActive(id, active) {
+        console.log(this._users[id]);
+        this._users[id].isActive = active;
+        console.log(this._users[id]);
+    }
+
     getUsers() {
-        return this._users;
+        let result = [];
+        this._users.forEach(user => {
+            if (user.isActive === true) {
+                result.push(user);
+            }
+        });
+        return result;
     }
 
     getMessages(top = 0, skip = 10, dateFrom, dateTo, text, author, currentUser) {
@@ -84,7 +97,7 @@ class ChatModel {
 
         if (currentUser) {
             for (let i = 0; i < messagesBuffer.length; i++) {
-                if (messagesBuffer[i].isPersonal && messagesBuffer[i].to !== currentUser && messagesBuffer[i].author !== currentUser ) {
+                if (messagesBuffer[i].isPersonal && messagesBuffer[i].to !== currentUser && messagesBuffer[i].author !== currentUser) {
                     messagesBuffer.splice(i, 1);
                     i--;
                 }
@@ -101,6 +114,16 @@ class ChatModel {
         const user = new User(name, password);
         this._users.push(user);
         return true;
+    }
+
+    getUserIdByName(name) {
+        let result = -1;
+        this._users.forEach((user, index) => {
+            if (user.name === name) {
+                result = index;
+            }
+        });
+        return result;
     }
 
     checkUser(name, password) {
@@ -150,7 +173,7 @@ class ChatModel {
         }
         message.createdAt = new Date();
         this._messages.push(message);
-      }
+    }
 
     deleteMessage(id) {
         this._messages.splice(id, 1);
@@ -237,6 +260,7 @@ app.post("/auth/login", upload.none(), function (request, response) {
     const name = request.body.name;
     const password = request.body.password;
     if (chatModel.checkUser(name, password)) {
+        chatModel.setUserActive(chatModel.getUserIdByName(name), true);
         response.status(200).send();
     } else {
         response.status(404).send();
@@ -260,7 +284,7 @@ app.post("/auth/logout", upload.none(), function (request, response) {
         return response.sendStatus(400);
     const name = request.body.name;
     console.log(name);
-    if (chatModel.checkUser(name) && chatModel.deleteUser(name)) {
+    if (chatModel.checkUser(name) && chatModel.setUserActive(chatModel.getUserIdByName(name), false)) {
         response.status(200).send();
     } else {
         response.status(400).send();

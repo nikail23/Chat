@@ -36,9 +36,7 @@ class ChatModel {
     ];
 
     setUserActive(id, active) {
-        console.log(this._users[id]);
         this._users[id].isActive = active;
-        console.log(this._users[id]);
     }
 
     getUsers() {
@@ -129,7 +127,7 @@ class ChatModel {
     checkUser(name, password) {
         let result = false;
         this._users.forEach(user => {
-            if (user.name === name && user.password === password) {
+            if (user.name === name && bcrypt.compare(password, user.password)) {
                 result = true;
             }
         });
@@ -191,6 +189,8 @@ const app = express();
 const cors = require('cors');
 const multer = require('multer');
 const upload = multer();
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
 app.use(cors());
 app.use(express.urlencoded({
@@ -222,9 +222,6 @@ app.get("/messages", function (request, response) {
 });
 
 app.post("/messages", function (request, response) {
-    if (!request.body) {
-        return response.status(400).send();
-    }
     const message = new Message();
     message.author = request.body.author;
     message.text = request.body.text;
@@ -255,10 +252,9 @@ app.put("/messages/:id", function (request, response) {
 });
 
 app.post("/auth/login", upload.none(), function (request, response) {
-    if (!request.body)
-        return response.sendStatus(400);
     const name = request.body.name;
     const password = request.body.password;
+    console.log(`Login start: name - ${name}, password - ${password}`);
     if (chatModel.checkUser(name, password)) {
         chatModel.setUserActive(chatModel.getUserIdByName(name), true);
         response.status(200).send();
@@ -268,11 +264,13 @@ app.post("/auth/login", upload.none(), function (request, response) {
 });
 
 app.post("/auth/register", upload.none(), function (request, response) {
-    if (!request.body)
-        return response.sendStatus(400);
     const name = request.body.name;
     const password = request.body.password;
-    if (!chatModel.checkUser(name) && chatModel.addUser(name, password)) {
+    if (!chatModel.checkUser(name)) {
+        const salt = bcrypt.genSaltSync(10);
+        const hashPassword = bcrypt.hashSync(password, salt);
+        console.log(`Register: name - ${name}, password - ${password}, hash - ${hashPassword}`);
+        chatModel.addUser(name, hashPassword)
         response.status(200).send();
     } else {
         response.status(400).send();
@@ -283,7 +281,6 @@ app.post("/auth/logout", upload.none(), function (request, response) {
     if (!request.body)
         return response.sendStatus(400);
     const name = request.body.name;
-    console.log(name);
     if (chatModel.checkUser(name) && chatModel.setUserActive(chatModel.getUserIdByName(name), false)) {
         response.status(200).send();
     } else {

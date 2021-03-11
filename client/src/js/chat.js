@@ -29,7 +29,8 @@ class ChatApiService {
     const requestOptions = {
       method: 'GET',
       redirect: 'follow',
-      headers: myHeaders
+      headers: myHeaders,
+      credentials: 'include'
     };
 
     let request = `${this._address}/messages?`;
@@ -84,10 +85,14 @@ class ChatApiService {
       }
     }
 
-    const messages = await fetch(request, requestOptions)
-      .then((response) => response.json())
-      .then((result) => result)
-      .catch((error) => console.log('error', error));
+    let messages;
+
+    const response = await fetch(request, requestOptions)
+    if (response.ok) {
+      messages = await response.json(); 
+    } else if (response.status === 401) {
+      document.location.href = './login.html';
+    }
 
     this._messages = messages;
 
@@ -120,14 +125,16 @@ class ChatApiService {
       headers: myHeaders,
       body: raw,
       redirect: 'follow',
+      credentials: 'include'
     };
 
-    const result = await fetch(`${this._address}/messages`, requestOptions)
-      .then((response) => response.text())
-      .then((result) => result)
-      .catch((error) => console.log('error', error));
 
-    return result;
+    const response = await fetch(`${this._address}/messages`, requestOptions)
+    if (response.ok) {
+      return await response.text(); 
+    } else if (response.status === 401) {
+      document.location.href = './login.html';
+    }
   }
 
   async editMessage(id, text) {
@@ -141,15 +148,16 @@ class ChatApiService {
       headers: myHeaders,
       body: raw,
       redirect: 'follow',
+      credentials: 'include'
     };
 
-    await fetch(`${this._address}/messages/${id}`, requestOptions)
-      .then((response) => {
-        if (response.status !== 200) {
-          document.location.href = `../error.html?errorCode=${response.status}&errorDescription=${response.statusText}`;
-        }
-      })
+    const response = await fetch(`${this._address}/messages/${id}`, requestOptions)
+      .then((response) => response)
       .catch((error) => console.log('error', error));
+
+    if (response.status === 401) {
+      document.location.href = './login.html';
+    }
   }
 
   async deleteMesssage(id) {
@@ -159,16 +167,17 @@ class ChatApiService {
       method: 'DELETE',
       headers: myHeaders,
       redirect: 'follow',
+      credentials: 'include'
     };
 
-    await fetch(`${this._address}/messages/${id}`, requestOptions)
-      .then((response) => {
-        if (response.statusText !== 'OK') {
-          document.location.href = `../error.html?errorCode=${response.status}&errorDescription=${response.statusText}`;
-        }
-      })
+    const response = await fetch(`${this._address}/messages/${id}`, requestOptions)
+      .then((response) => response)
       .then((result) => console.log(result))
       .catch((error) => console.log('error', error));
+
+    if (response.status === 401) {
+      document.location.href = './login.html';
+    }  
   }
 
   async logOut() {
@@ -198,6 +207,7 @@ class ChatApiService {
       method: 'GET',
       headers: myHeaders,
       redirect: 'follow',
+      credentials: 'include'
     };
 
     const users = await fetch(`${this._address}/users`, requestOptions)
@@ -351,7 +361,7 @@ class FiltersView {
 
 class ChatController {
   constructor() {
-    this.chatApi = new ChatApiService('http://localhost:3000');
+    this.chatApi = new ChatApiService('http://127.0.0.1:3000');
 
     this.currentTop = 10;
     this.currentSkip = 0;
@@ -467,7 +477,7 @@ class ChatController {
       const currentUser = JSON.parse(currentUserStorageText);
       this.setCurrentUser(currentUser.name, currentUser.avatar);
     } else {
-      document.location.href = '../error.html?errorCode=405&errorDescription=Unathorised';
+      document.location.href = './login.html';
     }
   }
 

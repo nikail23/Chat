@@ -29,7 +29,7 @@ class ChatApiService {
   }
 }
 
-const chatApi = new ChatApiService('http://localhost:3000');
+const chatApi = new ChatApiService('http://127.0.0.1:3000');
 
 const registerButton = document.getElementById('register');
 registerButton.addEventListener('click', async () => {

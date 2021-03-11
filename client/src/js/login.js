@@ -22,6 +22,7 @@ class ChatApiService {
       method: 'POST',
       body: formdata,
       redirect: 'follow',
+      credentials: 'include'
     };
 
     const loginResult = await fetch(`${this.address}/auth/login`, requestOptions)
@@ -36,7 +37,7 @@ class ChatApiService {
   }
 }
 
-const chatApi = new ChatApiService('http://localhost:3000');
+const chatApi = new ChatApiService('http://127.0.0.1:3000');
 
 const loginButton = document.getElementById('loginButton');
 loginButton.addEventListener('click', async () => {

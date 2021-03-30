@@ -8,7 +8,7 @@ class User {
   }
 }
 
-class ChatApiService {
+class LoginApiService {
   constructor(address) {
     this.address = address;
   }
@@ -37,7 +37,7 @@ class ChatApiService {
   }
 }
 
-const chatApi = new ChatApiService('http://127.0.0.1:3000');
+const chatApi = new LoginApiService('http://127.0.0.1:3000');
 
 const loginButton = document.getElementById('loginButton');
 loginButton.addEventListener('click', async () => {

@@ -34,17 +34,11 @@ class ChatModel {
         }
     }
 
-    getUsers(currentUser) {
+    getUsers() {
         let result = [];
         this._users.forEach(user => {
-            if (currentUser) {
-                if (user.isActive === true && user.name !== currentUser) {
-                    result.push(user);
-                }
-            } else {
-                if (user.isActive === true) {
-                    result.push(user);
-                }
+            if (user.isActive === true) {
+                result.push(user);
             }
         });
         return result;
@@ -71,7 +65,7 @@ class ChatModel {
                     }
                 }
             }
-    
+
             if (filter.dateTo) {
                 for (let i = 0; i < messagesBuffer.length; i++) {
                     if (messagesBuffer[i].createdAt > filter.dateTo) {
@@ -80,7 +74,7 @@ class ChatModel {
                     }
                 }
             }
-    
+
             if (filter.text) {
                 for (let i = 0; i < messagesBuffer.length; i++) {
                     if (messagesBuffer[i].text.indexOf(filter.text) === -1) {
@@ -89,12 +83,12 @@ class ChatModel {
                     }
                 }
             }
-    
+
             function compareDates(message1, message2) {
                 return message1.createdAt - message2.createdAt;
             }
             messagesBuffer.sort(compareDates);
-        }  
+        }
 
         if (currentUser) {
             for (let i = 0; i < messagesBuffer.length; i++) {
@@ -237,123 +231,46 @@ app.use(express.json());
 app.use(cookieParser());
 
 io.on('connection', function (socket) {
-    console.log('A user connected');
-    io.emit('users', chatModel.getUsers(undefined));
-    io.emit('messages', chatModel.getMessages(10, 0, undefined, undefined));
+    console.log(socket.handshake.headers);
 
-    socket.on('logOut', function () {
-        console.log('A user disconnected');
+    io.emit('users', chatModel.getUsers());
+
+    socket.on('logOut', function (currentUser) {
+        chatModel.setUserActive(chatModel.getUserIdByName(currentUser), false);
         io.emit('users', chatModel.getUsers());
     });
 
     socket.on('users', function (currentUser) {
-        console.log('Users request');
         socket.emit('users', chatModel.getUsers(currentUser));
     });
 
     socket.on('messages', function (skip, top, filter, currentUserName) {
-        console.log('Messages request');
         socket.emit('messages', chatModel.getMessages(top, skip, filter, currentUserName));
     });
 
     socket.on('addMessage', function (message) {
-        console.log('Add message request');
         chatModel.addMessage(message);
-        socket.emit('addMessage', true);
-        io.emit('messages', chatModel.getMessages(10, 0, undefined, undefined));
+        io.emit('messagesUpdateSelf');
     });
 
     socket.on('editMessage', function (id, text) {
-        console.log('Edit message request');
         chatModel.editMessage(id, text);
-        socket.emit('editMessage', true);
-        io.emit('messages', chatModel.getMessages(10, 0, undefined, undefined));
+        io.emit('messagesUpdateSelf');
     });
 
     socket.on('deleteMessage', function (id) {
-        console.log('Delete message request');
         chatModel.deleteMessage(id);
-        socket.emit('deleteMessage', true);
-        io.emit('messages', chatModel.getMessages(10, 0, undefined, undefined));
+        io.emit('messagesUpdateSelf');
     });
 });
 
-function checkAuthorisation(req, res) {
-    const token = req.cookies.token;
-    if (token) {
-        const userName = jwt.verify(token, jwtSecretWord).name;
-        if (userName) {
-            return chatModel.getUserOnlineState(userName);
-        }
+function checkAuthorisation(token) {
+    const userName = jwt.verify(token, jwtSecretWord).name;
+    if (userName) {
+        return chatModel.getUserOnlineState(userName);
     }
     return false;
 }
-
-app.get("/users", function (request, response) {
-    if (checkAuthorisation(request, response)) {
-        response.status(200).json(chatModel.getUsers());
-    } else {
-        response.status(401).send('Not authorised!');
-    }
-});
-
-app.get("/messages", function (request, response) {
-    if (checkAuthorisation(request, response)) {
-        const top = request.query.top;
-        const skip = request.query.skip;
-        const dateFromString = request.query.dateFrom;
-        const dateToString = request.query.dateTo;
-        let dateTo;
-        let dateFrom;
-        if (dateFromString) {
-            dateFrom = new Date(dateFromString);
-        }
-        if (dateToString) {
-            dateTo = new Date(dateToString);
-        }
-        const text = request.query.text;
-        const author = request.query.author;
-        const currentUser = request.get('currentUser');
-        response.status(200).json(chatModel.getMessages(top, skip, dateFrom, dateTo, text, author, currentUser));
-    } else {
-        response.status(401).send('Not authorised!');
-    }
-});
-
-app.post("/messages", function (request, response) {
-    if (checkAuthorisation(request, response)) {
-        const message = new Message();
-        message.author = request.body.author;
-        message.text = request.body.text;
-        message.isPersonal = request.body.isPersonal;
-        message.to = request.body.to;
-        chatModel.addMessage(message);
-        response.status(200).end();
-    } else {
-        response.status(401).send('Not authorised!');
-    }
-});
-
-app.delete("/messages/:id", function (request, response) {
-    if (checkAuthorisation(request, response)) {
-        const id = request.params.id;
-        chatModel.deleteMessage(id);
-        response.status(200).end();
-    } else {
-        response.status(401).send('Not authorised!');
-    }
-});
-
-app.put("/messages/:id", function (request, response) {
-    if (checkAuthorisation(request, response)) {
-        const id = request.params.id;
-        const text = request.body.text;
-        chatModel.editMessage(id, text);
-        response.status(200).end();
-    } else {
-        response.status(401).send('Not authorised!');
-    }
-});
 
 app.post("/auth/login", upload.none(), function (request, response) {
     const name = request.body.name;
@@ -362,13 +279,9 @@ app.post("/auth/login", upload.none(), function (request, response) {
         const token = jwt.sign({
             name: name,
             id: chatModel.getUserIdByName(name)
-        }, jwtSecretWord, {
-            expiresIn: 60 * 60
-        });
+        }, jwtSecretWord, {expiresIn: 60*60});
         chatModel.setUserActive(chatModel.getUserIdByName(name), true, token);
-        response.cookie('token', token, {
-            httpOnly: true
-        });
+        response.cookie('token', token);
         response.status(200).end();
     } else {
         response.status(404).end();
@@ -382,15 +295,6 @@ app.post("/auth/register", upload.none(), function (request, response) {
         const salt = bcrypt.genSaltSync(10);
         const hashPassword = bcrypt.hashSync(password, salt);
         chatModel.addUser(name, hashPassword)
-        response.status(200).end();
-    } else {
-        response.status(400).end();
-    }
-});
-
-app.post("/auth/logout", upload.none(), function (request, response) {
-    const name = request.body.name;
-    if (chatModel.checkUser(name) && chatModel.setUserActive(chatModel.getUserIdByName(name), false)) {
         response.status(200).end();
     } else {
         response.status(400).end();

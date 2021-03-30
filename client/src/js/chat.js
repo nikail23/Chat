@@ -145,12 +145,48 @@ class FiltersView {
 
 class ChatApiService {
   constructor(address) {
-    this._socket = io(address);
-
     this._messages = [];
 
     this._activeUsers = [];
     this._currentUser = null;
+
+    this._socket = io(address);
+    
+    this._socket.on("messages", function (messages) {
+      chatApi.getValidMessages(messages);
+      this._messages = messages;
+      const sortedMessages = chatApi.sortMessages(messages);
+      messagesView.display(sortedMessages, chatApi.getCurrentUser());
+      addDeleteEventToAllMessages();
+      addEditEventToAllMessages();
+    });
+
+    this._socket.on("users", function (users) {
+      this._activeUsers = users;
+      activeUsersView.display(users, chatApi.getCurrentUser());
+      addSelectUserEvent();
+    });
+
+    this._socket.on("messagesUpdateSelf", function () {
+      chatController.updateMessages();
+    });
+  }
+
+  getValidMessages(messages) {
+    messages.forEach((message) => {
+      message.createdAt = new Date(message.createdAt);
+    });
+  }
+
+  sortMessages(messages) {
+    const messagesBuffer = messages.slice();
+
+    function compareDates(message1, message2) {
+      return message1.createdAt - message2.createdAt;
+    }
+    messagesBuffer.sort(compareDates);
+
+    return messagesBuffer;
   }
 
   setCurrentUser(user) {
@@ -162,60 +198,27 @@ class ChatApiService {
   }
 
   async getMessages(skip, top, filter, currentUserName) {
-    const socket = this._socket;
-    socket.emit('messages', skip, top, filter, currentUserName);
-    return new Promise(function (resolve, reject) {
-      socket.on("messages", function (messages) {
-        this._messages = messages;
-        resolve(messages);
-      });
-    });
+    this._socket.emit('messages', skip, top, filter, currentUserName);
   }
 
   async addMessage(text, isPersonal, to) {
-    const socket = this._socket;
-    socket.emit('addMessage', new Message(undefined, text, undefined, this._currentUser.name, isPersonal, to));
-    return new Promise(function (resolve, reject) {
-      socket.on("addMessage", function (result) {
-        resolve(result);
-      });
-    });
+    this._socket.emit('addMessage', new Message(undefined, text, undefined, this._currentUser.name, isPersonal, to));
   }
 
   async editMessage(id, text) {
-    const socket = this._socket;
-    socket.emit('editMessage', id, text);
-    return new Promise(function (resolve, reject) {
-      socket.on("editMessage", function (result) {
-        resolve(result);
-      });
-    });
+    this._socket.emit('editMessage', id, text);
   }
 
   async deleteMesssage(id) {
-    const socket = this._socket;
-    socket.emit('deleteMessage', id);
-    return new Promise(function (resolve, reject) {
-      socket.on("deleteMessage", function (result) {
-        resolve(result);
-      });
-    });
+    this._socket.emit('deleteMessage', id);
   }
 
   async logOut() {
-    const socket = this._socket;
-    socket.emit('logOut', this._currentUser.name);
+    this._socket.emit('logOut', this._currentUser.name);
   }
 
   async getUsers() {
-    const socket = this._socket;
-    socket.emit('users', this._currentUser.name);
-    return new Promise(function (resolve, reject) {
-      socket.on("users", function (users) {
-        this._activeUsers = users;
-        resolve(users);
-      });
-    });
+    this._socket.emit('users', this._currentUser.name);
   }
 }
 
@@ -229,65 +232,27 @@ class ChatController {
     this.showHelpBox(this.currentSelectedUser);
     this.loadCurrentUser();
 
-    this.showActiveUsers();
-    this.showMessages(this.currentSkip, this.currentTop, this.currentFilter);
+    this.updateMessages();
   }
 
   async addMessage(text, isPersonal, to) {
-    const result = await chatApi.addMessage(text, isPersonal, to);
-    if (result) {
-      await this.showMessages();
-    }
+    await chatApi.addMessage(text, isPersonal, to);
   }
 
   async editMessage(id, text) {
-    if (chatApi.editMessage(id, text)) {
-      await this.showMessages();
-    }
+    await chatApi.editMessage(id, text);
   }
 
   async removeMessage(id) {
-    if (chatApi.deleteMesssage(id)) {
-      await this.showMessages();
-    }
+    await chatApi.deleteMesssage(id);
   }
 
-  _getValidMessages(messages) {
-    messages.forEach((message) => {
-      message.createdAt = new Date(message.createdAt);
-    });
-  }
-
-  _sortMessages(messages, skip, top, filterConfig) {
-    const messagesBuffer = messages.slice();
-
-    function compareDates(message1, message2) {
-      return message1.createdAt - message2.createdAt;
-    }
-    messagesBuffer.sort(compareDates);
-
-    return messagesBuffer;
-  }
-
-  async showMessages(skip, top, filter) {
-    const messages = await chatApi.getMessages(this.currentSkip, this.currentTop, this.currentFilter);
-    if (messages && messages !== 'query params invalid') {
-      this._getValidMessages(messages);
-      const sortedMessages = this._sortMessages(messages, skip, top, filter);
-      messagesView.display(sortedMessages, chatApi.getCurrentUser());
-      addDeleteEventToAllMessages();
-      addEditEventToAllMessages();
-    } else {
-      messagesView.display([], chatApi.getCurrentUser());
-    }
+  async updateMessages() {
+    await chatApi.getMessages(this.currentSkip, this.currentTop, this.currentFilter, chatApi.getCurrentUser().name);
   }
 
   async showActiveUsers() {
-    const users = await chatApi.getUsers();
-    if (users) {
-      activeUsersView.display(users, chatApi.getCurrentUser());
-      addSelectUserEvent();
-    }
+    await chatApi.getUsers();
   }
 
   setCurrentUser(name, avatar) {
@@ -347,7 +312,7 @@ function addLoadOtherMessagesButtonEvent() {
   const loadOtherMessagesButton = document.getElementById('loadMoreButton');
   loadOtherMessagesButton.addEventListener('click', (event) => {
     chatController.currentTop += 10;
-    chatController.showMessages(chatController.currentSkip, chatController.currentTop, chatController.currentFilter);
+    chatController.updateMessages(chatController.currentSkip, chatController.currentTop, chatController.currentFilter);
   });
 }
 
@@ -440,7 +405,7 @@ function addFilterEvent() {
     const filter = new FilterConfig(authorFilter, dateFromFilter, dateToFilter, textFilter);
     chatController.currentFilter = filter;
 
-    chatController.showMessages(this.currentSkip, this.currentTop, this.currentFilter);
+    chatController.updateMessages(this.currentSkip, this.currentTop, this.currentFilter);
   });
 
   filterCancelButton.addEventListener('click', (event) => {
@@ -451,7 +416,7 @@ function addFilterEvent() {
     filtersBox.children[3].value = null;
 
     chatController.currentFilter = null;
-    chatController.showMessages(chatController.currentSkip, chatController.currentTop, chatController.currentFilter);
+    chatController.updateMessages(chatController.currentSkip, chatController.currentTop, chatController.currentFilter);
   });
 }
 

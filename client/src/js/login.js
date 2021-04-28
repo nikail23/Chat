@@ -8,7 +8,7 @@ class User {
   }
 }
 
-class ChatApiService {
+class LoginApiService {
   constructor(address) {
     this.address = address;
   }
@@ -21,7 +21,7 @@ class ChatApiService {
     const requestOptions = {
       method: 'POST',
       body: formdata,
-      redirect: 'follow',
+      redirect: 'follow'
     };
 
     const loginResult = await fetch(`${this.address}/auth/login`, requestOptions)
@@ -36,7 +36,7 @@ class ChatApiService {
   }
 }
 
-const chatApi = new ChatApiService('http://localhost:3000');
+const chatApi = new LoginApiService('http://127.0.0.1:3000');
 
 const loginButton = document.getElementById('loginButton');
 loginButton.addEventListener('click', async () => {

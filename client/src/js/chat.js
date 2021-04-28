@@ -4,210 +4,6 @@
 /* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
 /* eslint-disable max-len */
-class ChatApiService {
-  constructor(address) {
-    this._address = address;
-
-    this._messages = [];
-
-    this._activeUsers = [];
-    this._currentUser = null;
-  }
-
-  setCurrentUser(user) {
-    this._currentUser = user;
-  }
-
-  getCurrentUser() {
-    return this._currentUser;
-  }
-
-  async getMessages(skip, top, filter) {
-    const myHeaders = new Headers();
-    myHeaders.append('currentUser', this._currentUser.name);
-
-    const requestOptions = {
-      method: 'GET',
-      redirect: 'follow',
-      headers: myHeaders
-    };
-
-    let request = `${this._address}/messages?`;
-    let isFirst = false;
-
-    if (skip !== undefined) {
-      request += `skip=${skip}`;
-      isFirst = true;
-    }
-
-    if (top !== undefined) {
-      if (isFirst) {
-        request += `&top=${top}`;
-      } else {
-        isFirst = true;
-        request += `top=${top}`;
-      }
-    }
-
-    if (filter !== undefined && filter !== null) {
-      if (filter.dateTo !== undefined) {
-        if (isFirst) {
-          request += `&dateTo=${filter.dateTo}`;
-        } else {
-          isFirst = true;
-          request += `dateTo=${filter.dateTo}`;
-        }
-      }
-      if (filter.dateFrom !== undefined) {
-        if (isFirst) {
-          request += `&dateFrom=${filter.dateFrom}`;
-        } else {
-          isFirst = true;
-          request += `dateFrom=${filter.dateFrom}`;
-        }
-      }
-      if (filter.author !== undefined && filter.author !== '') {
-        if (isFirst) {
-          request += `&author=${filter.author}`;
-        } else {
-          isFirst = true;
-          request += `author=${filter.author}`;
-        }
-      }
-      if (filter.text !== undefined && filter.text !== '') {
-        if (isFirst) {
-          request += `&text=${filter.text}`;
-        } else {
-          isFirst = true;
-          request += `text=${filter.text}`;
-        }
-      }
-    }
-
-    const messages = await fetch(request, requestOptions)
-      .then((response) => response.json())
-      .then((result) => result)
-      .catch((error) => console.log('error', error));
-
-    this._messages = messages;
-
-    return messages;
-  }
-
-  _getMessage(id) {
-    function checkId(element) {
-      if (element.id === id) {
-        return true;
-      }
-      return false;
-    }
-    return this._messages.find(checkId);
-  }
-
-  async addMessage(text, isPersonal, to) {
-    const myHeaders = new Headers();
-    myHeaders.append('Content-Type', 'application/json');
-
-    let raw;
-    if (isPersonal === false) {
-      raw = `{\n    "author": "${this.getCurrentUser().name}",\n    "text": "${text}",\n    "isPersonal": ${isPersonal}\n}`;
-    } else {
-      raw = `{\n    "author": "${this.getCurrentUser().name}",\n    "text": "${text}",\n    "isPersonal": ${isPersonal},\n    "to":"${to}"\n}`;
-    }
-
-    const requestOptions = {
-      method: 'POST',
-      headers: myHeaders,
-      body: raw,
-      redirect: 'follow',
-    };
-
-    const result = await fetch(`${this._address}/messages`, requestOptions)
-      .then((response) => response.text())
-      .then((result) => result)
-      .catch((error) => console.log('error', error));
-
-    return result;
-  }
-
-  async editMessage(id, text) {
-    const myHeaders = new Headers();
-    myHeaders.append('Content-Type', 'application/json');
-
-    const raw  = `{"text": "${text}"}`;
-
-    const requestOptions = {
-      method: 'PUT',
-      headers: myHeaders,
-      body: raw,
-      redirect: 'follow',
-    };
-
-    await fetch(`${this._address}/messages/${id}`, requestOptions)
-      .then((response) => {
-        if (response.status !== 200) {
-          document.location.href = `../error.html?errorCode=${response.status}&errorDescription=${response.statusText}`;
-        }
-      })
-      .catch((error) => console.log('error', error));
-  }
-
-  async deleteMesssage(id) {
-    const myHeaders = new Headers();
-
-    const requestOptions = {
-      method: 'DELETE',
-      headers: myHeaders,
-      redirect: 'follow',
-    };
-
-    await fetch(`${this._address}/messages/${id}`, requestOptions)
-      .then((response) => {
-        if (response.statusText !== 'OK') {
-          document.location.href = `../error.html?errorCode=${response.status}&errorDescription=${response.statusText}`;
-        }
-      })
-      .then((result) => console.log(result))
-      .catch((error) => console.log('error', error));
-  }
-
-  async logOut() {
-    const myHeaders = new Headers();
-    myHeaders.append('Content-Length', 0);
-
-    const formdata = new FormData();
-    formdata.append('name', chatController.chatApi._currentUser.name);
-
-    const requestOptions = {
-      method: 'POST',
-      headers: myHeaders,
-      redirect: 'follow',
-      body: formdata
-    };
-
-    await fetch(`${this._address}/auth/logout`, requestOptions)
-      .then((response) => response.text())
-      .then((result) => result)
-      .catch((error) => console.log('error', error));
-  }
-
-  async getUsers() {
-    const myHeaders = new Headers();
-
-    const requestOptions = {
-      method: 'GET',
-      headers: myHeaders,
-      redirect: 'follow',
-    };
-
-    const users = await fetch(`${this._address}/users`, requestOptions)
-      .then((response) => response.json())
-      .then((result) => result)
-      .catch((error) => console.log('error', error));
-
-    return users;
-  }
-}
 
 class Message {
   constructor(id, text, createdAt, author, isPersonal, to) {
@@ -347,76 +143,21 @@ class FiltersView {
   }
 }
 
-// CONTROLLER
-
-class ChatController {
+class ChatApiService {
   constructor() {
-    this.chatApi = new ChatApiService('http://localhost:3000');
+    this._messages = [];
 
-    this.currentTop = 10;
-    this.currentSkip = 0;
-    this.currentFilter = null;
-    this.currentSelectedUser = 'All';
-
-    this.messagesView = new MessagesView('messages');
-    this.activeUsersView = new ActiveUsersView('userList');
-    this.helpBoxView = new HelpBoxView('helpBox');
-    this.filtersView = new FiltersView('filters');
-    this.headerView = new HeaderView('avatar', 'currentUser');
-
-    this.showHelpBox(this.currentSelectedUser);
-    this.loadCurrentUser();
-
-    this.showActiveUsers();
-    this.showMessages(this.currentSkip, this.currentTop, this.currentFilter);
-    this.startShortPolling();
+    this._activeUsers = [];
+    this._currentUser = null;
   }
 
-  startShortPolling() {
-    this.showMessages(this.currentSkip, this.currentTop, this.currentFilter);
-    this.showActiveUsers();
-
-    this.dataUpdateInterval = setInterval(() => {
-      this.showMessages(this.currentSkip, this.currentTop, this.currentFilter);
-    }, 2000);
-
-    this.usersUpdateInterval = setInterval(() => {
-      this.showActiveUsers();
-    }, 10000);
-  }
-
-  endShortPolling() {
-    clearInterval(this.dataUpdateInterval);
-    clearInterval(this.usersUpdateInterval);
-  }
-
-  async addMessage(text, isPersonal, to) {
-    const result = await this.chatApi.addMessage(text, isPersonal, to);
-    if (result != null) {
-      console.log(result);
-      await this.showMessages();
-    }
-  }
-
-  async editMessage(id, text) {
-    if (this.chatApi.editMessage(id, text)) {
-      await this.showMessages();
-    }
-  }
-
-  async removeMessage(id) {
-    if (this.chatApi.deleteMesssage(id)) {
-      await this.showMessages();
-    }
-  }
-
-  _getValidMessages(messages) {
+  getValidMessages(messages) {
     messages.forEach((message) => {
       message.createdAt = new Date(message.createdAt);
     });
   }
 
-  _sortMessages(messages, skip, top, filterConfig) {
+  sortMessages(messages) {
     const messagesBuffer = messages.slice();
 
     function compareDates(message1, message2) {
@@ -427,38 +168,238 @@ class ChatController {
     return messagesBuffer;
   }
 
-  async showMessages(skip, top, filter) {
-    const messages = await this.chatApi.getMessages(this.currentSkip, this.currentTop, this.currentFilter);
-    if (messages !== undefined && messages !== null && messages !== 'query params invalid') {
-      this._getValidMessages(messages);
-      const sortedMessages = this._sortMessages(messages, skip, top, filter);
-      this.messagesView.display(sortedMessages, this.chatApi.getCurrentUser());
-      addDeleteEventToAllMessages();
-      addEditEventToAllMessages();
-    } else {
-      this.messagesView.display([], this.chatApi.getCurrentUser());
-    }
+  setCurrentUser(user) {
+    this._currentUser = user;
+  }
+
+  getCurrentUser() {
+    return this._currentUser;
+  }
+
+  async getMessages(skip, top, currentUserName) {
+    const result = await fetch('http://localhost:3000/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(
+        {
+          query: `{ 
+            messages(skip: ${skip}, top: ${top}, currentUserName: "${currentUserName}") {
+              id, 
+              text, 
+              author, 
+              createdAt, 
+              isPersonal, 
+              to 
+            } 
+          }`
+        }
+      )
+    });
+    const json = await result.json();
+    this._messages = json.data.messages;
+    return this._messages;
+  }
+
+  async addMessage(text, isPersonal, to) {
+    const result = await fetch('http://localhost:3000/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(
+        {
+          query: `mutation { 
+            addMessage(text: "${text}", author: "${this._currentUser.name}", isPersonal: ${isPersonal}, to: "${to}") {
+              id,
+              text,
+              author,
+              createdAt,
+              isPersonal,
+              to
+            } 
+          }`
+        }
+      )
+    });
+
+    const json = await result.json();
+    console.log(json.data.message);
+  }
+
+  async editMessage(id, text) {
+    const result = await fetch('http://localhost:3000/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(
+        {
+          query: `mutation { 
+            editMessage(id: ${id}, text: "${text}") {
+              id,
+              text,
+              author,
+              createdAt,
+              isPersonal,
+              to
+            } 
+          }`
+        }
+      )
+    });
+
+    const json = await result.json();
+    console.log(json.data.message);
+  }
+
+  async deleteMesssage(id) {
+    const result = await fetch('http://localhost:3000/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(
+        {
+          query: `mutation { 
+            deleteMessage(id: ${id}) {
+              id,
+              text,
+              author,
+              createdAt,
+              isPersonal,
+              to
+            } 
+          }`
+        }
+      )
+    });
+
+    const json = await result.json();
+    console.log(json.data.message);
+  }
+
+  async logOut() {
+    const result = await fetch('http://localhost:3000/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(
+        {
+          query: `mutation { 
+            logOut(currentUserName: "${this._currentUser.name}") {
+              name,
+              password,
+              isActive,
+              token
+            } 
+          }`
+        }
+      )
+    });
+  }
+
+  async getUsers() {
+    const result = await fetch('http://localhost:3000/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(
+        {
+          query: `{ 
+            users {
+              name,
+              password,
+              isActive, 
+              token
+            } 
+          }`
+        }
+      )
+    });
+    const json = await result.json();
+    this._activeUsers = json.data.users;
+    return this._activeUsers;
+  }
+}
+
+class ChatController {
+  constructor() {
+    this.currentTop = 10;
+    this.currentSkip = 0;
+    this.currentFilter = new FilterConfig();
+    this.currentSelectedUser = 'All';
+
+    this.showHelpBox(this.currentSelectedUser);
+    this.loadCurrentUser();
+
+    this.startShortPolling();
+  }
+
+  startShortPolling() {
+    this.interval = setInterval(() => {
+      this.updateMessages();
+      this.showActiveUsers();
+    }, 1000)
+  }
+
+  endShortPolling() {
+    clearInterval(this.interval);
+  }
+
+  async addMessage(text, isPersonal, to) {
+    await chatApi.addMessage(text, isPersonal, to);
+  }
+
+  async editMessage(id, text) {
+    await chatApi.editMessage(id, text);
+  }
+
+  async removeMessage(id) {
+    await chatApi.deleteMesssage(id);
+  }
+
+  async updateMessages() {
+    const messages = await chatApi.getMessages(this.currentSkip, this.currentTop, this.currentFilter, chatApi.getCurrentUser().name);
+    chatApi.getValidMessages(messages);
+    const sortedMessages = chatApi.sortMessages(messages);
+    messagesView.display(sortedMessages, chatApi.getCurrentUser());
+    addDeleteEventToAllMessages();
+    addEditEventToAllMessages();
   }
 
   async showActiveUsers() {
-    const users = await this.chatApi.getUsers();
-    if (users !== null) {
-      this.activeUsersView.display(users, this.chatApi.getCurrentUser());
-      addSelectUserEvent();
-    }
+    const users = await chatApi.getUsers();
+    activeUsersView.display(users, chatApi.getCurrentUser());
+    addSelectUserEvent();
   }
 
   setCurrentUser(name, avatar) {
-    this.chatApi.setCurrentUser(new User(name, avatar));
-    this.headerView.display(this.chatApi.getCurrentUser().avatar, this.chatApi.getCurrentUser().name);
+    chatApi.setCurrentUser(new User(name, avatar));
+    headerView.display(chatApi.getCurrentUser().avatar, chatApi.getCurrentUser().name);
   }
 
   showHelpBox(to) {
-    this.helpBoxView.display(to);
+    helpBoxView.display(to);
   }
 
   showFilters(filterConfig) {
-    this.filtersView.display(filterConfig);
+    filtersView.display(filterConfig);
   }
 
   loadCurrentUser() {
@@ -467,15 +408,23 @@ class ChatController {
       const currentUser = JSON.parse(currentUserStorageText);
       this.setCurrentUser(currentUser.name, currentUser.avatar);
     } else {
-      document.location.href = '../error.html?errorCode=405&errorDescription=Unathorised';
+      document.location.href = './login.html';
     }
   }
 
   async logOut() {
-    await this.chatApi.logOut();
+    await chatApi.logOut();
     document.location.href = './login.html';
   }
 }
+
+const messagesView = new MessagesView('messages');
+const activeUsersView = new ActiveUsersView('userList');
+const helpBoxView = new HelpBoxView('helpBox');
+const filtersView = new FiltersView('filters');
+const headerView = new HeaderView('avatar', 'currentUser');
+
+const chatApi = new ChatApiService();
 
 const chatController = new ChatController();
 
@@ -483,12 +432,14 @@ function addSelectUserEvent() {
   const activeUsers = document.getElementsByClassName('user');
   Array.prototype.slice.call(activeUsers).forEach((user) => {
     user.addEventListener('click', (event) => {
+      chatController.endShortPolling();
       const oldSelectedUser = chatController.currentSelectedUser;
       chatController.currentSelectedUser = user.children[1].innerText;
       if (oldSelectedUser === chatController.currentSelectedUser) {
         chatController.currentSelectedUser = 'All';
       }
       chatController.showHelpBox(chatController.currentSelectedUser);
+      chatController.startShortPolling();
     });
   });
 }
@@ -496,8 +447,10 @@ function addSelectUserEvent() {
 function addLoadOtherMessagesButtonEvent() {
   const loadOtherMessagesButton = document.getElementById('loadMoreButton');
   loadOtherMessagesButton.addEventListener('click', (event) => {
+    chatController.endShortPolling();
     chatController.currentTop += 10;
-    chatController.showMessages(chatController.currentSkip, chatController.currentTop, chatController.currentFilter);
+    chatController.updateMessages(chatController.currentSkip, chatController.currentTop, chatController.currentFilter);
+    chatController.startShortPolling();
   });
 }
 
@@ -506,10 +459,8 @@ function addDeleteEventToAllMessages() {
   Array.prototype.slice.call(deleteMessageButtons).forEach((button) => {
     button.addEventListener('click', (event) => {
       chatController.endShortPolling();
-
       const messageContainer = button.parentNode;
       chatController.removeMessage(messageContainer.id);
-
       chatController.startShortPolling();
     });
   });
@@ -520,7 +471,6 @@ function addEditEventToAllMessages() {
   Array.prototype.slice.call(editMessageButtons).forEach((button) => {
     button.addEventListener('click', (event) => {
       chatController.endShortPolling();
-
       const messageContainer = button.parentNode;
       const messageInput = messageContainer.children[0];
       messageInput.style = 'background-color: var(--first-bg-color);';
@@ -544,6 +494,7 @@ function addEditEventToAllMessages() {
             messageContainer.appendChild(editButton);
             messageContainer.classList.remove('editMessage');
             messageInput.setAttribute('disabled', true);
+            
             chatController.startShortPolling();
             break;
           case 27:
@@ -568,7 +519,6 @@ function addFilterEvent() {
 
   filterSendButton.addEventListener('click', (event) => {
     chatController.endShortPolling();
-
     const filtersBox = document.getElementById('filters');
     const authorFilterBox = filtersBox.children[0];
     const dateFromFilterBox = filtersBox.children[1];
@@ -600,14 +550,13 @@ function addFilterEvent() {
     const filter = new FilterConfig(authorFilter, dateFromFilter, dateToFilter, textFilter);
     chatController.currentFilter = filter;
 
-    chatController.showMessages(this.currentSkip, this.currentTop, this.currentFilter);
+    chatController.updateMessages(this.currentSkip, this.currentTop, this.currentFilter);
 
     chatController.startShortPolling();
   });
 
   filterCancelButton.addEventListener('click', (event) => {
     chatController.endShortPolling();
-
     const filtersBox = document.getElementById('filters');
     filtersBox.children[0].value = null;
     filtersBox.children[1].value = null;
@@ -615,8 +564,8 @@ function addFilterEvent() {
     filtersBox.children[3].value = null;
 
     chatController.currentFilter = null;
-    chatController.showMessages(chatController.currentSkip, chatController.currentTop, chatController.currentFilter);
-
+    chatController.updateMessages(chatController.currentSkip, chatController.currentTop, chatController.currentFilter);
+    
     chatController.startShortPolling();
   });
 }
@@ -649,7 +598,6 @@ function addSendButtonEvent() {
 function addLogOutEvent() {
   const logOutButton = document.getElementById('logOut');
   logOutButton.addEventListener('click', () => {
-    chatController.endShortPolling();
     chatController.logOut();
   });
 }

@@ -4,14 +4,18 @@
   "description": "server part of my chat app",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "nodemon server.js"
   },
   "author": "Ilya Yermolovich",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.19.0",
+    "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
     "express": "^4.17.1",
-    "multer": "^1.4.2"
+    "express-graphql": "^0.12.0",
+    "graphql": "^15.5.0",
+    "multer": "^1.4.2",
+    "nodemon": "^2.0.7"
   }
 }

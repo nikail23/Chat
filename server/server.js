@@ -2,6 +2,8 @@ class User {
     constructor(name, password) {
         this.name = name;
         this.password = password;
+        this.isActive = false;
+        this.token = null;
     }
 }
 
@@ -18,73 +20,43 @@ class Message {
 
 class ChatModel {
     _users = [
-        new User(
-            'nikail23',
-            'thvjkjdbx'
-        )
+        new User('nikail23', 'thvjkjdbx'),
+        new User('user2', 'thvjkjdbx')
     ]
-
     _messages = [
-        new Message(
-            0,
-            'Всем привет!',
-            new Date(),
-            'nikail23',
-            false
-        )
+        new Message('0', 'Hello!', new Date(), 'nikail23', false)
     ];
 
-    getUsers() {
-        return this._users;
+    setUserActive(id, active, token) {
+        this._users[id].isActive = active;
+        if (token) {
+            this._users[id].token = token;
+        }
     }
 
-    getMessages(top = 0, skip = 10, dateFrom, dateTo, text, author, currentUser) {
+    getUsers() {
+        let result = [];
+        this._users.forEach(user => {
+            if (user.isActive === true) {
+                result.push(user);
+            }
+        });
+        return result;
+    }
+
+    getMessages(top, skip, currentUser) {
         let messagesBuffer = this._messages.slice();
-
-        if (author) {
-            for (let i = 0; i < messagesBuffer.length; i++) {
-                if (messagesBuffer[i].author.indexOf(author) === -1) {
-                    messagesBuffer.splice(i, 1);
-                    i--;
-                }
-            }
-        }
-
-        if (dateFrom) {
-            for (let i = 0; i < messagesBuffer.length; i++) {
-                if (messagesBuffer[i].createdAt < dateFrom) {
-                    messagesBuffer.splice(i, 1);
-                    i--;
-                }
-            }
-        }
-
-        if (dateTo) {
-            for (let i = 0; i < messagesBuffer.length; i++) {
-                if (messagesBuffer[i].createdAt > dateTo) {
-                    messagesBuffer.splice(i, 1);
-                    i--;
-                }
-            }
-        }
-
-        if (text) {
-            for (let i = 0; i < messagesBuffer.length; i++) {
-                if (messagesBuffer[i].text.indexOf(text) === -1) {
-                    messagesBuffer.splice(i, 1);
-                    i--;
-                }
-            }
-        }
 
         function compareDates(message1, message2) {
             return message1.createdAt - message2.createdAt;
         }
         messagesBuffer.sort(compareDates);
 
+        console.log(messagesBuffer);
+
         if (currentUser) {
             for (let i = 0; i < messagesBuffer.length; i++) {
-                if (messagesBuffer[i].isPersonal && messagesBuffer[i].to !== currentUser && messagesBuffer[i].author !== currentUser ) {
+                if (messagesBuffer[i].isPersonal && messagesBuffer[i].to !== currentUser && messagesBuffer[i].author !== currentUser) {
                     messagesBuffer.splice(i, 1);
                     i--;
                 }
@@ -93,8 +65,9 @@ class ChatModel {
 
         messagesBuffer = messagesBuffer.slice(skip, top + skip);
 
-        return messagesBuffer;
+        console.log(messagesBuffer);
 
+        return messagesBuffer;
     }
 
     addUser(name, password) {
@@ -103,11 +76,32 @@ class ChatModel {
         return true;
     }
 
+    getUserIdByName(name) {
+        let result = -1;
+        this._users.forEach((user, index) => {
+            if (user.name === name) {
+                result = index;
+            }
+        });
+        return result;
+    }
+
     checkUser(name, password) {
         let result = false;
         this._users.forEach(user => {
-            if (user.name === name && user.password === password) {
+            const passwordCheck = bcrypt.compareSync(password, user.password);
+            if (user.name === name && passwordCheck) {
                 result = true;
+            }
+        });
+        return result;
+    }
+
+    getUserOnlineState(name) {
+        let result = false;
+        this._users.forEach(user => {
+            if (user.name === name) {
+                result = user.isActive;
             }
         });
         return result;
@@ -117,6 +111,18 @@ class ChatModel {
         let result = false;
         this._users.forEach(user => {
             if (user.name === name) {
+                result = true;
+            }
+        });
+        return result;
+    }
+
+    checkUserToken(token) {
+        let result = false;
+        this._users.forEach(user => {
+            console.log(user);
+            console.log(token);
+            if (user.token === token) {
                 result = true;
             }
         });
@@ -139,18 +145,23 @@ class ChatModel {
     }
 
     editMessage(id, text) {
+        console.log(this._messages[id]);
         this._messages[id].text = text;
+        console.log(this._messages[id]);
     }
 
     addMessage(message) {
+        const newMessage = new Message(undefined, message.text, undefined, message.author, message.isPersonal, message.to);
         if (this._messages.length !== 0) {
-            message.id = String(Number(this._messages[this._messages.length - 1].id) + 1);
+            newMessage.id = String(Number(this._messages[this._messages.length - 1].id) + 1);
         } else {
-            message.id = 0;
+            newMessage.id = 0;
         }
-        message.createdAt = new Date();
-        this._messages.push(message);
-      }
+        newMessage.createdAt = new Date();
+        console.log(newMessage);
+        this._messages.push(newMessage);
+        return newMessage;
+    }
 
     deleteMessage(id) {
         this._messages.splice(id, 1);
@@ -161,110 +172,170 @@ class ChatModel {
     }
 }
 
+const jwtSecretWord = 'yermolovich';
 const chatModel = new ChatModel();
 
 const express = require("express");
 const app = express();
+
 const cors = require('cors');
 const multer = require('multer');
 const upload = multer();
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const cookieParser = require('cookie-parser');
 
-app.use(cors());
+// GraphQL
+
+const graphqlHTTP = require('express-graphql').graphqlHTTP;
+const {
+    buildSchema
+} = require("graphql");
+const schema = buildSchema(`
+    type Query {
+        messages(top: Int, skip: Int, text: String, author: String, dateFrom: String, dateTo: String, currentUserName: String): [Message]
+        users: [User]
+    }
+    type Mutation {
+        addMessage(text: String, author: String, isPersonal: Boolean, to: String): Message
+        editMessage(id: Int, text: String): Message
+        deleteMessage(id: Int): Message
+        logOut(currentUserName: String): User
+    }
+    type Message {
+        id: Int
+        text: String
+        createdAt: String
+        author: String
+        isPersonal: Boolean
+        to: String
+    }
+    type User {
+        id: Int
+        name: String
+        password: String
+        isActive: Boolean
+        token: String
+    }
+    type Filter {
+        text: String
+        dateFrom: String
+        dateTo: String
+        author: String
+    }
+    input FilterInput {
+        text: String
+        dateFrom: String
+        dateTo: String
+        author: String
+    }
+`);
+
+const getMessages = function (args) {
+    if (args) {
+        const top = args.top;
+        const skip = args.skip;
+        const currentUserName = args.currentUserName;
+        return chatModel.getMessages(top, skip, currentUserName).map((value) => {
+            return {
+                id: value.id,
+                text: value.text,
+                author: value.author,
+                createdAt: value.createdAt.toString(),
+                isPersonal: value.isPersonal,
+                to: value.to,
+            };
+        });
+    }
+}
+
+const addMessage = function (args) {
+    if (args) {
+        const text = args.text;
+        const author = args.author;
+        const isPersonal = args.isPersonal;
+        const to = args.to;
+        chatModel.addMessage(new Message(undefined, text, undefined, author, isPersonal, to));
+        return args.message;
+    }
+}
+
+const editMessage = function (args) {
+    return chatModel.editMessage(args.id, args.text);
+}
+
+const deleteMessage = function (args) {
+    return chatModel.deleteMessage(args.id);
+}
+
+const getUsers = function () {
+    return chatModel.getUsers();
+}
+
+const logOut = function (args) {
+    if (args.currentUser) {
+        chatModel.setUserActive(chatModel.getUserIdByName(currentUser), false);
+        return true;
+    }
+    return false;
+}
+
+var root = {
+    messages: getMessages,
+    users: getUsers,
+    addMessage: addMessage,
+    editMessage: editMessage,
+    deleteMessage: deleteMessage,
+    logOut: logOut
+};
+
+app.use(cors({
+    origin: '*'
+}));
+
+app.use('/graphql', graphqlHTTP({
+    schema: schema,
+    rootValue: root,
+    graphiql: true
+}));
+
 app.use(express.urlencoded({
     extended: true
 }));
 app.use(express.json());
-
-app.get("/users", function (request, response) {
-    response.status(200).json(chatModel.getUsers());
-});
-
-app.get("/messages", function (request, response) {
-    const top = request.query.top;
-    const skip = request.query.skip;
-    const dateFromString = request.query.dateFrom;
-    const dateToString = request.query.dateTo;
-    let dateTo;
-    let dateFrom;
-    if (dateFromString) {
-        dateFrom = new Date(dateFromString);
-    }
-    if (dateToString) {
-        dateTo = new Date(dateToString);
-    }
-    const text = request.query.text;
-    const author = request.query.author;
-    const currentUser = request.get('currentUser');
-    response.status(200).json(chatModel.getMessages(top, skip, dateFrom, dateTo, text, author, currentUser));
-});
-
-app.post("/messages", function (request, response) {
-    if (!request.body) {
-        return response.status(400).send();
-    }
-    const message = new Message();
-    message.author = request.body.author;
-    message.text = request.body.text;
-    message.isPersonal = request.body.isPersonal;
-    message.to = request.body.to;
-    chatModel.addMessage(message);
-
-    response.status(200).send();
-});
-
-app.delete("/messages/:id", function (request, response) {
-    const id = request.params.id;
-    if (id > -1) {
-        chatModel.deleteMessage(id);
-        response.status(200).send();
-    }
-    response.status(400).send();
-});
-
-app.put("/messages/:id", function (request, response) {
-    const id = request.params.id;
-    if (id > -1) {
-        const text = request.body.text;
-        chatModel.editMessage(id, text);
-        response.status(200).send();
-    }
-    response.status(400).send();
-});
+app.use(cookieParser());
 
 app.post("/auth/login", upload.none(), function (request, response) {
-    if (!request.body)
-        return response.sendStatus(400);
     const name = request.body.name;
     const password = request.body.password;
     if (chatModel.checkUser(name, password)) {
-        response.status(200).send();
+        const token = jwt.sign({
+            name: name,
+            id: chatModel.getUserIdByName(name)
+        }, jwtSecretWord, {
+            expiresIn: 60 * 60
+        });
+        chatModel.setUserActive(chatModel.getUserIdByName(name), true, token);
+        response.cookie('token', token);
+        response.status(200).end();
     } else {
-        response.status(404).send();
+        response.status(404).end();
     }
 });
 
 app.post("/auth/register", upload.none(), function (request, response) {
-    if (!request.body)
-        return response.sendStatus(400);
     const name = request.body.name;
     const password = request.body.password;
-    if (!chatModel.checkUser(name) && chatModel.addUser(name, password)) {
-        response.status(200).send();
+    if (!chatModel.checkUser(name)) {
+        const salt = bcrypt.genSaltSync(10);
+        const hashPassword = bcrypt.hashSync(password, salt);
+        chatModel.addUser(name, hashPassword)
+        response.status(200).end();
     } else {
-        response.status(400).send();
+        response.status(400).end();
     }
 });
 
-app.post("/auth/logout", upload.none(), function (request, response) {
-    if (!request.body)
-        return response.sendStatus(400);
-    const name = request.body.name;
-    console.log(name);
-    if (chatModel.checkUser(name) && chatModel.deleteUser(name)) {
-        response.status(200).send();
-    } else {
-        response.status(400).send();
-    }
+app.listen(3000, function () {
+    console.log('listening on *:3000');
 });
-
-app.listen(3000);

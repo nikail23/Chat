@@ -144,32 +144,11 @@ class FiltersView {
 }
 
 class ChatApiService {
-  constructor(address) {
+  constructor() {
     this._messages = [];
 
     this._activeUsers = [];
     this._currentUser = null;
-
-    this._socket = io(address);
-    
-    this._socket.on("messages", function (messages) {
-      chatApi.getValidMessages(messages);
-      this._messages = messages;
-      const sortedMessages = chatApi.sortMessages(messages);
-      messagesView.display(sortedMessages, chatApi.getCurrentUser());
-      addDeleteEventToAllMessages();
-      addEditEventToAllMessages();
-    });
-
-    this._socket.on("users", function (users) {
-      this._activeUsers = users;
-      activeUsersView.display(users, chatApi.getCurrentUser());
-      addSelectUserEvent();
-    });
-
-    this._socket.on("messagesUpdateSelf", function () {
-      chatController.updateMessages();
-    });
   }
 
   getValidMessages(messages) {
@@ -197,28 +176,165 @@ class ChatApiService {
     return this._currentUser;
   }
 
-  async getMessages(skip, top, filter, currentUserName) {
-    this._socket.emit('messages', skip, top, filter, currentUserName);
+  async getMessages(skip, top, currentUserName) {
+    const result = await fetch('http://localhost:3000/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(
+        {
+          query: `{ 
+            messages(skip: ${skip}, top: ${top}, currentUserName: "${currentUserName}") {
+              id, 
+              text, 
+              author, 
+              createdAt, 
+              isPersonal, 
+              to 
+            } 
+          }`
+        }
+      )
+    });
+    const json = await result.json();
+    this._messages = json.data.messages;
+    return this._messages;
   }
 
   async addMessage(text, isPersonal, to) {
-    this._socket.emit('addMessage', new Message(undefined, text, undefined, this._currentUser.name, isPersonal, to));
+    const result = await fetch('http://localhost:3000/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(
+        {
+          query: `mutation { 
+            addMessage(text: "${text}", author: "${this._currentUser.name}", isPersonal: ${isPersonal}, to: "${to}") {
+              id,
+              text,
+              author,
+              createdAt,
+              isPersonal,
+              to
+            } 
+          }`
+        }
+      )
+    });
+
+    const json = await result.json();
+    console.log(json.data.message);
   }
 
   async editMessage(id, text) {
-    this._socket.emit('editMessage', id, text);
+    const result = await fetch('http://localhost:3000/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(
+        {
+          query: `mutation { 
+            editMessage(id: ${id}, text: "${text}") {
+              id,
+              text,
+              author,
+              createdAt,
+              isPersonal,
+              to
+            } 
+          }`
+        }
+      )
+    });
+
+    const json = await result.json();
+    console.log(json.data.message);
   }
 
   async deleteMesssage(id) {
-    this._socket.emit('deleteMessage', id);
+    const result = await fetch('http://localhost:3000/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(
+        {
+          query: `mutation { 
+            deleteMessage(id: ${id}) {
+              id,
+              text,
+              author,
+              createdAt,
+              isPersonal,
+              to
+            } 
+          }`
+        }
+      )
+    });
+
+    const json = await result.json();
+    console.log(json.data.message);
   }
 
   async logOut() {
-    this._socket.emit('logOut', this._currentUser.name);
+    const result = await fetch('http://localhost:3000/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(
+        {
+          query: `mutation { 
+            logOut(currentUserName: "${this._currentUser.name}") {
+              name,
+              password,
+              isActive,
+              token
+            } 
+          }`
+        }
+      )
+    });
   }
 
   async getUsers() {
-    this._socket.emit('users', this._currentUser.name);
+    const result = await fetch('http://localhost:3000/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(
+        {
+          query: `{ 
+            users {
+              name,
+              password,
+              isActive, 
+              token
+            } 
+          }`
+        }
+      )
+    });
+    const json = await result.json();
+    this._activeUsers = json.data.users;
+    return this._activeUsers;
   }
 }
 
@@ -226,13 +342,24 @@ class ChatController {
   constructor() {
     this.currentTop = 10;
     this.currentSkip = 0;
-    this.currentFilter = null;
+    this.currentFilter = new FilterConfig();
     this.currentSelectedUser = 'All';
 
     this.showHelpBox(this.currentSelectedUser);
     this.loadCurrentUser();
 
-    this.updateMessages();
+    this.startShortPolling();
+  }
+
+  startShortPolling() {
+    this.interval = setInterval(() => {
+      this.updateMessages();
+      this.showActiveUsers();
+    }, 1000)
+  }
+
+  endShortPolling() {
+    clearInterval(this.interval);
   }
 
   async addMessage(text, isPersonal, to) {
@@ -248,11 +375,18 @@ class ChatController {
   }
 
   async updateMessages() {
-    await chatApi.getMessages(this.currentSkip, this.currentTop, this.currentFilter, chatApi.getCurrentUser().name);
+    const messages = await chatApi.getMessages(this.currentSkip, this.currentTop, this.currentFilter, chatApi.getCurrentUser().name);
+    chatApi.getValidMessages(messages);
+    const sortedMessages = chatApi.sortMessages(messages);
+    messagesView.display(sortedMessages, chatApi.getCurrentUser());
+    addDeleteEventToAllMessages();
+    addEditEventToAllMessages();
   }
 
   async showActiveUsers() {
-    await chatApi.getUsers();
+    const users = await chatApi.getUsers();
+    activeUsersView.display(users, chatApi.getCurrentUser());
+    addSelectUserEvent();
   }
 
   setCurrentUser(name, avatar) {
@@ -290,7 +424,7 @@ const helpBoxView = new HelpBoxView('helpBox');
 const filtersView = new FiltersView('filters');
 const headerView = new HeaderView('avatar', 'currentUser');
 
-const chatApi = new ChatApiService('ws://127.0.0.1:3000');
+const chatApi = new ChatApiService();
 
 const chatController = new ChatController();
 
@@ -298,12 +432,14 @@ function addSelectUserEvent() {
   const activeUsers = document.getElementsByClassName('user');
   Array.prototype.slice.call(activeUsers).forEach((user) => {
     user.addEventListener('click', (event) => {
+      chatController.endShortPolling();
       const oldSelectedUser = chatController.currentSelectedUser;
       chatController.currentSelectedUser = user.children[1].innerText;
       if (oldSelectedUser === chatController.currentSelectedUser) {
         chatController.currentSelectedUser = 'All';
       }
       chatController.showHelpBox(chatController.currentSelectedUser);
+      chatController.startShortPolling();
     });
   });
 }
@@ -311,8 +447,10 @@ function addSelectUserEvent() {
 function addLoadOtherMessagesButtonEvent() {
   const loadOtherMessagesButton = document.getElementById('loadMoreButton');
   loadOtherMessagesButton.addEventListener('click', (event) => {
+    chatController.endShortPolling();
     chatController.currentTop += 10;
     chatController.updateMessages(chatController.currentSkip, chatController.currentTop, chatController.currentFilter);
+    chatController.startShortPolling();
   });
 }
 
@@ -320,8 +458,10 @@ function addDeleteEventToAllMessages() {
   const deleteMessageButtons = document.getElementsByClassName('delete');
   Array.prototype.slice.call(deleteMessageButtons).forEach((button) => {
     button.addEventListener('click', (event) => {
+      chatController.endShortPolling();
       const messageContainer = button.parentNode;
       chatController.removeMessage(messageContainer.id);
+      chatController.startShortPolling();
     });
   });
 }
@@ -330,6 +470,7 @@ function addEditEventToAllMessages() {
   const editMessageButtons = document.getElementsByClassName('edit');
   Array.prototype.slice.call(editMessageButtons).forEach((button) => {
     button.addEventListener('click', (event) => {
+      chatController.endShortPolling();
       const messageContainer = button.parentNode;
       const messageInput = messageContainer.children[0];
       messageInput.style = 'background-color: var(--first-bg-color);';
@@ -353,6 +494,8 @@ function addEditEventToAllMessages() {
             messageContainer.appendChild(editButton);
             messageContainer.classList.remove('editMessage');
             messageInput.setAttribute('disabled', true);
+            
+            chatController.startShortPolling();
             break;
           case 27:
             messageInput.value = messageText;
@@ -360,6 +503,7 @@ function addEditEventToAllMessages() {
             messageContainer.appendChild(editButton);
             messageContainer.classList.remove('editMessage');
             messageInput.setAttribute('disabled', true);
+            chatController.startShortPolling();
             break;
           default:
             break;
@@ -374,6 +518,7 @@ function addFilterEvent() {
   const filterCancelButton = document.getElementById('filterCancelButton');
 
   filterSendButton.addEventListener('click', (event) => {
+    chatController.endShortPolling();
     const filtersBox = document.getElementById('filters');
     const authorFilterBox = filtersBox.children[0];
     const dateFromFilterBox = filtersBox.children[1];
@@ -406,9 +551,12 @@ function addFilterEvent() {
     chatController.currentFilter = filter;
 
     chatController.updateMessages(this.currentSkip, this.currentTop, this.currentFilter);
+
+    chatController.startShortPolling();
   });
 
   filterCancelButton.addEventListener('click', (event) => {
+    chatController.endShortPolling();
     const filtersBox = document.getElementById('filters');
     filtersBox.children[0].value = null;
     filtersBox.children[1].value = null;
@@ -417,12 +565,16 @@ function addFilterEvent() {
 
     chatController.currentFilter = null;
     chatController.updateMessages(chatController.currentSkip, chatController.currentTop, chatController.currentFilter);
+    
+    chatController.startShortPolling();
   });
 }
 
 function addSendButtonEvent() {
   const messageInput = document.getElementById('sendButton');
   messageInput.addEventListener('click', (event) => {
+    chatController.endShortPolling();
+
     event.preventDefault();
     const textInput = document.getElementById('myInput');
     const messageText = textInput.value;
@@ -438,6 +590,8 @@ function addSendButtonEvent() {
     textInput.value = '';
     const messagesContainer = document.getElementById('messages');
     messagesContainer.scrollTo(0, document.body.scrollHeight);
+
+    chatController.startShortPolling();
   });
 }
 

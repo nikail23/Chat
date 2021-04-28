@@ -21,8 +21,7 @@ class LoginApiService {
     const requestOptions = {
       method: 'POST',
       body: formdata,
-      redirect: 'follow',
-      credentials: 'include'
+      redirect: 'follow'
     };
 
     const loginResult = await fetch(`${this.address}/auth/login`, requestOptions)

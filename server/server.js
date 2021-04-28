@@ -44,51 +44,15 @@ class ChatModel {
         return result;
     }
 
-    getMessages(top, skip, filter, currentUser) {
+    getMessages(top, skip, currentUser) {
         let messagesBuffer = this._messages.slice();
 
-        if (filter) {
-            if (filter.author) {
-                for (let i = 0; i < messagesBuffer.length; i++) {
-                    if (messagesBuffer[i].author.indexOf(filter.author) === -1) {
-                        messagesBuffer.splice(i, 1);
-                        i--;
-                    }
-                }
-            }
-
-            if (filter.dateFrom) {
-                for (let i = 0; i < messagesBuffer.length; i++) {
-                    if (messagesBuffer[i].createdAt < filter.dateFrom) {
-                        messagesBuffer.splice(i, 1);
-                        i--;
-                    }
-                }
-            }
-
-            if (filter.dateTo) {
-                for (let i = 0; i < messagesBuffer.length; i++) {
-                    if (messagesBuffer[i].createdAt > filter.dateTo) {
-                        messagesBuffer.splice(i, 1);
-                        i--;
-                    }
-                }
-            }
-
-            if (filter.text) {
-                for (let i = 0; i < messagesBuffer.length; i++) {
-                    if (messagesBuffer[i].text.indexOf(filter.text) === -1) {
-                        messagesBuffer.splice(i, 1);
-                        i--;
-                    }
-                }
-            }
-
-            function compareDates(message1, message2) {
-                return message1.createdAt - message2.createdAt;
-            }
-            messagesBuffer.sort(compareDates);
+        function compareDates(message1, message2) {
+            return message1.createdAt - message2.createdAt;
         }
+        messagesBuffer.sort(compareDates);
+
+        console.log(messagesBuffer);
 
         if (currentUser) {
             for (let i = 0; i < messagesBuffer.length; i++) {
@@ -100,6 +64,8 @@ class ChatModel {
         }
 
         messagesBuffer = messagesBuffer.slice(skip, top + skip);
+
+        console.log(messagesBuffer);
 
         return messagesBuffer;
     }
@@ -179,17 +145,22 @@ class ChatModel {
     }
 
     editMessage(id, text) {
+        console.log(this._messages[id]);
         this._messages[id].text = text;
+        console.log(this._messages[id]);
     }
 
     addMessage(message) {
+        const newMessage = new Message(undefined, message.text, undefined, message.author, message.isPersonal, message.to);
         if (this._messages.length !== 0) {
-            message.id = String(Number(this._messages[this._messages.length - 1].id) + 1);
+            newMessage.id = String(Number(this._messages[this._messages.length - 1].id) + 1);
         } else {
-            message.id = 0;
+            newMessage.id = 0;
         }
-        message.createdAt = new Date();
-        this._messages.push(message);
+        newMessage.createdAt = new Date();
+        console.log(newMessage);
+        this._messages.push(newMessage);
+        return newMessage;
     }
 
     deleteMessage(id) {
@@ -206,13 +177,7 @@ const chatModel = new ChatModel();
 
 const express = require("express");
 const app = express();
-app.set('port', process.env.PORT || 3000);
-const http = require('http').Server(app);
-const io = require('socket.io')(http, {
-    cors: {
-        origin: "*"
-    }
-});
+
 const cors = require('cors');
 const multer = require('multer');
 const upload = multer();
@@ -220,57 +185,125 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const cookieParser = require('cookie-parser');
 
+// GraphQL
+
+const graphqlHTTP = require('express-graphql').graphqlHTTP;
+const {
+    buildSchema
+} = require("graphql");
+const schema = buildSchema(`
+    type Query {
+        messages(top: Int, skip: Int, text: String, author: String, dateFrom: String, dateTo: String, currentUserName: String): [Message]
+        users: [User]
+    }
+    type Mutation {
+        addMessage(text: String, author: String, isPersonal: Boolean, to: String): Message
+        editMessage(id: Int, text: String): Message
+        deleteMessage(id: Int): Message
+        logOut(currentUserName: String): User
+    }
+    type Message {
+        id: Int
+        text: String
+        createdAt: String
+        author: String
+        isPersonal: Boolean
+        to: String
+    }
+    type User {
+        id: Int
+        name: String
+        password: String
+        isActive: Boolean
+        token: String
+    }
+    type Filter {
+        text: String
+        dateFrom: String
+        dateTo: String
+        author: String
+    }
+    input FilterInput {
+        text: String
+        dateFrom: String
+        dateTo: String
+        author: String
+    }
+`);
+
+const getMessages = function (args) {
+    if (args) {
+        const top = args.top;
+        const skip = args.skip;
+        const currentUserName = args.currentUserName;
+        return chatModel.getMessages(top, skip, currentUserName).map((value) => {
+            return {
+                id: value.id,
+                text: value.text,
+                author: value.author,
+                createdAt: value.createdAt.toString(),
+                isPersonal: value.isPersonal,
+                to: value.to,
+            };
+        });
+    }
+}
+
+const addMessage = function (args) {
+    if (args) {
+        const text = args.text;
+        const author = args.author;
+        const isPersonal = args.isPersonal;
+        const to = args.to;
+        chatModel.addMessage(new Message(undefined, text, undefined, author, isPersonal, to));
+        return args.message;
+    }
+}
+
+const editMessage = function (args) {
+    return chatModel.editMessage(args.id, args.text);
+}
+
+const deleteMessage = function (args) {
+    return chatModel.deleteMessage(args.id);
+}
+
+const getUsers = function () {
+    return chatModel.getUsers();
+}
+
+const logOut = function (args) {
+    if (args.currentUser) {
+        chatModel.setUserActive(chatModel.getUserIdByName(currentUser), false);
+        return true;
+    }
+    return false;
+}
+
+var root = {
+    messages: getMessages,
+    users: getUsers,
+    addMessage: addMessage,
+    editMessage: editMessage,
+    deleteMessage: deleteMessage,
+    logOut: logOut
+};
+
 app.use(cors({
-    origin: true,
-    credentials: true
+    origin: '*'
 }));
+
+app.use('/graphql', graphqlHTTP({
+    schema: schema,
+    rootValue: root,
+    graphiql: true
+}));
+
 app.use(express.urlencoded({
     extended: true
 }));
 app.use(express.json());
 app.use(cookieParser());
-
-io.on('connection', function (socket) {
-    console.log(socket.handshake.headers);
-
-    io.emit('users', chatModel.getUsers());
-
-    socket.on('logOut', function (currentUser) {
-        chatModel.setUserActive(chatModel.getUserIdByName(currentUser), false);
-        io.emit('users', chatModel.getUsers());
-    });
-
-    socket.on('users', function (currentUser) {
-        socket.emit('users', chatModel.getUsers(currentUser));
-    });
-
-    socket.on('messages', function (skip, top, filter, currentUserName) {
-        socket.emit('messages', chatModel.getMessages(top, skip, filter, currentUserName));
-    });
-
-    socket.on('addMessage', function (message) {
-        chatModel.addMessage(message);
-        io.emit('messagesUpdateSelf');
-    });
-
-    socket.on('editMessage', function (id, text) {
-        chatModel.editMessage(id, text);
-        io.emit('messagesUpdateSelf');
-    });
-
-    socket.on('deleteMessage', function (id) {
-        chatModel.deleteMessage(id);
-        io.emit('messagesUpdateSelf');
-    });
-});
-
-function checkAuthorisation(token) {
-    const userName = jwt.verify(token, jwtSecretWord).name;
-    if (userName) {
-        return chatModel.getUserOnlineState(userName);
-    }
-    return false;
-}
 
 app.post("/auth/login", upload.none(), function (request, response) {
     const name = request.body.name;
@@ -279,7 +312,9 @@ app.post("/auth/login", upload.none(), function (request, response) {
         const token = jwt.sign({
             name: name,
             id: chatModel.getUserIdByName(name)
-        }, jwtSecretWord, {expiresIn: 60*60});
+        }, jwtSecretWord, {
+            expiresIn: 60 * 60
+        });
         chatModel.setUserActive(chatModel.getUserIdByName(name), true, token);
         response.cookie('token', token);
         response.status(200).end();
@@ -301,6 +336,6 @@ app.post("/auth/register", upload.none(), function (request, response) {
     }
 });
 
-http.listen(3000, function () {
+app.listen(3000, function () {
     console.log('listening on *:3000');
 });
